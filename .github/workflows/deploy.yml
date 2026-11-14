@@ -1,0 +1,55 @@
+name: Build and publish Wasteland Terminal
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the game files
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Prepare Flutter web support
+        run: flutter create --platforms=web .
+
+      - name: Download game dependencies
+        run: flutter pub get
+
+      - name: Build the browser version
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Prepare GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the finished game
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publish the game
+        id: deployment
+        uses: actions/deploy-pages@v4
