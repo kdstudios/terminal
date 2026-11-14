@@ -114,6 +114,7 @@ class CombatSystem {
         break;
       case PlayerAction.defend:
         s.playerDefending = true;
+        s.fx.add(const CombatFx(CombatFxKind.defend));
         state.addLog('> YOU BRACE FOR IMPACT.', LogKind.system, notify: false);
         break;
       case PlayerAction.item:
@@ -167,6 +168,7 @@ class CombatSystem {
     state.wear(state.weaponId, heavy ? 2 : 1); // swinging wears the weapon
     final hitBonus = min(0.2, 0.02 * state.skill('COMBAT')); // Combat skill
     if (_rng.nextDouble() > (heavy ? 0.7 : 0.9) + hitBonus) {
+      s.fx.add(CombatFx(CombatFxKind.miss, crit: heavy));
       state.addLog(_playerMiss[_rng.nextInt(_playerMiss.length)], LogKind.warning,
           notify: false);
       return;
@@ -185,6 +187,7 @@ class CombatSystem {
           LogKind.narrative, notify: false);
     }
     s.hp = max(0, s.hp - dmg);
+    s.fx.add(CombatFx(heavy ? CombatFxKind.heavy : CombatFxKind.shot, amount: dmg, crit: crit));
     final hitPool = _weaponHits[state.weaponId] ?? _weaponHits['pipe']!;
     state.addLog(hitPool[_rng.nextInt(hitPool.length)], LogKind.narrative, notify: false);
     if (crit) {
@@ -201,6 +204,7 @@ class CombatSystem {
     state.stimpacks--;
     final before = state.hp;
     state.hp = min(state.maxHp, state.hp + state.stimHeal);
+    state.combat?.fx.add(CombatFx(CombatFxKind.heal, amount: state.hp - before));
     state.addLog('> YOU USE A STIMPACK. +${state.hp - before} HP', LogKind.loot,
         notify: false);
     state.gainSkill('SURVIVAL');
@@ -237,11 +241,13 @@ class CombatSystem {
       _hitPlayer(s, mult: 2.0, forceHit: true);
     } else if (t.chargeChance > 0 && _rng.nextDouble() < t.chargeChance) {
       s.charging = true;
+      s.fx.add(const CombatFx(CombatFxKind.enemyCharge));
       _endTurnWithoutAttack(s,
           'The ${t.short} ${t.chargeText}... BRACE!');
       return;
     } else if (t.coverChance > 0 && _rng.nextDouble() < t.coverChance) {
       s.guarding = true;
+      s.fx.add(const CombatFx(CombatFxKind.enemyCover));
       _endTurnWithoutAttack(s, 'The ${t.short} ducks behind cover!');
       return;
     } else {
@@ -272,6 +278,7 @@ class CombatSystem {
     var dmg = ((s.atkMin + _rng.nextInt(s.atkMax - s.atkMin + 1)) * mult).round();
     final hitChance = max(0.4, t.hitChance - state.evadeBonus);
     if (!forceHit && _rng.nextDouble() >= hitChance) {
+      s.fx.add(const CombatFx(CombatFxKind.enemyMiss));
       state.addLog(
           _enemyMiss[_rng.nextInt(_enemyMiss.length)].replaceAll('{n}', t.short),
           LogKind.system,
@@ -288,6 +295,8 @@ class CombatSystem {
       state.addLog('(YOUR ARMOR ABSORBED $armor)', LogKind.narrative, notify: false);
     }
     state.hp = max(0, state.hp - dmg);
+    s.fx.add(CombatFx(CombatFxKind.enemyHit,
+        amount: dmg, crit: mult >= 2.0, blocked: s.playerDefending));
     final worn = state.armorId;
     if (worn != null) state.wear(worn, 1); // every hit wears your armor
     state.addLog(

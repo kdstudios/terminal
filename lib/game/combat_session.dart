@@ -7,6 +7,18 @@ enum EnemyType {
 
 enum CombatOutcome { none, won, fled, died }
 
+/// Something the combat stage should animate. The system appends these as a
+/// round resolves; the stage drains them and plays them back in order.
+enum CombatFxKind { shot, heavy, miss, defend, heal, enemyHit, enemyMiss, enemyCharge, enemyCover }
+
+class CombatFx {
+  final CombatFxKind kind;
+  final int amount; // damage / healing
+  final bool crit; // player critical, or an enemy's charged attack
+  final bool blocked; // enemyHit while the player was defending
+  const CombatFx(this.kind, {this.amount = 0, this.crit = false, this.blocked = false});
+}
+
 /// Data for one enemy kind. Behaviour comes from a few numbers:
 /// chargeChance (telegraphed double hit), coverChance (ducks, halving your next
 /// hit), strikes (attacks per turn) and ambush (may strike first). hitLines and
@@ -273,6 +285,7 @@ class CombatSession {
   bool charging = false; // telegraphed heavy attack
   bool guarding = false; // enemy is behind cover: your next hit is halved
   bool playerDefending = false;
+  final List<CombatFx> fx = []; // animation events, drained by the combat stage
   int turn = 1;
   CombatOutcome outcome = CombatOutcome.none;
   int scrapGained = 0; // negative if scrap was lost on defeat

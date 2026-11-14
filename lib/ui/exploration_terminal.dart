@@ -16,6 +16,7 @@ import '../game/fx.dart';
 import '../game/world.dart';
 import '../game/typewriter.dart';
 import 'atlas.dart';
+import 'backdrop.dart';
 import 'sprites.dart';
 import 'wasteland_scene.dart';
 import 'theme.dart';
@@ -82,21 +83,25 @@ class _ExplorationTerminalState extends State<ExplorationTerminal>
                               ? 'ENCOUNTER'
                               : 'EXPLORATION // ${widget.state.region}${widget.state.walkingPaused ? ' (STOPPED)' : ''}',
           child: inHack
-              ? HackingView(
-                  state: widget.state,
-                  system: widget.hacking,
-                  typer: widget.consoleTyper)
+              ? Backdrop(
+                  tile: 'bg.wall',
+                  child: HackingView(
+                      state: widget.state,
+                      system: widget.hacking,
+                      typer: widget.consoleTyper))
               : inLock
-              ? LockpickView(
-                  state: widget.state,
-                  system: widget.lockpicking,
-                  typer: widget.consoleTyper)
+              ? Backdrop(
+                  tile: 'bg.steel',
+                  child: LockpickView(
+                      state: widget.state,
+                      system: widget.lockpicking,
+                      typer: widget.consoleTyper))
               : inCombat
               ? CombatView(state: widget.state, system: widget.combat, typer: widget.consoleTyper)
               : inHome
               ? HomeView(state: widget.state, system: widget.home)
               : inEvent
-              ? EventView(state: widget.state)
+              ? Backdrop(tile: 'bg.wall', child: EventView(state: widget.state))
               : Atlas.ready
               ? WastelandView(
                   region: regions.indexOf(regionAt(widget.state.distanceKm)),

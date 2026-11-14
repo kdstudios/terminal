@@ -91,16 +91,25 @@ def main():
     items['sign.route66post'] = on_post(_crop('world_b', 'sign.route66'))
     rig_imgs, rig_meta = rig_dweller.build()
     items.update(rig_imgs)
-    pad = 4
-    W = sum(i.width + pad for i in items.values()) + pad
-    H = max(i.height for i in items.values()) + 2 * pad
-    sheet = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    sprites, names, x = [], {}, pad
-    for n, (name, im) in enumerate(items.items()):
-        sheet.alpha_composite(im, (x, pad))
-        sprites.append({'i': n, 'x': x, 'y': pad, 'w': im.width, 'h': im.height, 'ax': im.width // 2})
+    from creatures import CREATURES
+    from backgrounds import BACKGROUNDS
+    for k, fn in CREATURES.items():
+        items['enemy.' + k] = fn().finish(2)        # authored facing LEFT (towards the player)
+    for k, fn in BACKGROUNDS.items():
+        items[k] = fn().resize((64 * 3, 64 * 3), Image.NEAREST)
+    from slice_sheets import pack
+    ordered = list(items.items())
+    sheet, pos = pack([im for _, im in ordered], width=2048)
+    W, H = sheet.size
+    sprites, names = [], {}
+    for n, (name, im) in enumerate(ordered):
+        x, y = pos[n]
+        sprites.append({'i': n, 'x': x, 'y': y, 'w': im.width, 'h': im.height, 'ax': im.width // 2})
         names[name] = n
-        x += im.width + pad
+    clean_dir = os.path.join(ROOT, 'art_clean', 'derived')
+    os.makedirs(clean_dir, exist_ok=True)
+    for name, im in ordered:
+        im.save(os.path.join(clean_dir, name + '.png'))   # every derived sprite, individually
     os.makedirs(OUT, exist_ok=True)
     sheet.save(os.path.join(OUT, 'derived.png'))
     json.dump({'image': 'derived.png', 'width': W, 'height': H, 'sprites': sprites,

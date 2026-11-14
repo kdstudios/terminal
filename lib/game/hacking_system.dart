@@ -78,7 +78,7 @@ class HackingSystem {
       Fx.play(Sfx.confirm);
       state.addLog('> ACCESS GRANTED', LogKind.system, notify: false);
       if (s.flawless) {
-        state.addLog('> FLAWLESS INTRUSION BONUS', LogKind.loot, notify: false);
+        state.addLog('> FLAWLESS INTRUSION BONUS', LogKind.loot, notify: false, recap: false);
       }
       state.addLog('+ ${reward + bonus} SCRAP', LogKind.loot, notify: false);
       state.gainXp(15 * s.level);
@@ -127,10 +127,10 @@ class HackingSystem {
     }
     if (options[_rng.nextInt(options.length)] == 0) {
       s.removeToken(duds[_rng.nextInt(duds.length)]);
-      state.addLog('> DUD REMOVED', LogKind.loot);
+      state.addLog('> DUD REMOVED', LogKind.loot, recap: false);
     } else {
       s.attempts = s.maxAttempts;
-      state.addLog('> ATTEMPTS RESTORED', LogKind.loot);
+      state.addLog('> ATTEMPTS RESTORED', LogKind.loot, recap: false);
     }
   }
 

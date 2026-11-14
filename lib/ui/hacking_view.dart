@@ -65,27 +65,17 @@ class HackingView extends StatelessWidget {
               style: T.mono(s.attempts <= 1 ? T.red : T.green, size: fs, bold: true),
             ),
             const SizedBox(height: 4),
-            Stack(children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (d) => _tap(
-                  (d.localPosition.dy / cellH).floor(),
-                  (d.localPosition.dx / cellW).floor(),
-                ),
-                child: CustomPaint(
-                  size: Size(cellW * _cols, cellH * lines),
-                  painter: _GridPainter(s, fs, cellW, cellH),
-                ),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: (d) => _tap(
+                (d.localPosition.dy / cellH).floor(),
+                (d.localPosition.dx / cellW).floor(),
               ),
-              Positioned.fill(
-                child: _ResultFlash(
-                  attempts: s.attempts,
-                  finished: s.finished,
-                  success: s.success,
-                  height: cellH * lines,
-                ),
+              child: CustomPaint(
+                size: Size(cellW * _cols, cellH * lines),
+                painter: _GridPainter(s, fs, cellW, cellH),
               ),
-            ]),
+            ),
             // Fixed-height row so nothing shifts when the hack finishes.
             SizedBox(
               height: 36,
@@ -308,64 +298,6 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter old) => true;
-}
-
-/// CRT result screens from the art sheet: "Access Denied" flashes on a wrong
-/// guess; "CORRECT" / "System Lockout" stay once the hack is over.
-class _ResultFlash extends StatefulWidget {
-  final int attempts;
-  final bool finished, success;
-  final double height;
-  const _ResultFlash({
-    required this.attempts,
-    required this.finished,
-    required this.success,
-    required this.height,
-  });
-
-  @override
-  State<_ResultFlash> createState() => _ResultFlashState();
-}
-
-class _ResultFlashState extends State<_ResultFlash> {
-  Timer? _timer;
-  bool _denied = false;
-
-  @override
-  void didUpdateWidget(covariant _ResultFlash old) {
-    super.didUpdateWidget(old);
-    if (widget.attempts < old.attempts && !widget.finished) {
-      _timer?.cancel();
-      setState(() => _denied = true);
-      _timer = Timer(const Duration(milliseconds: 900), () {
-        if (mounted) setState(() => _denied = false);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final name = widget.finished
-        ? (widget.success ? 'screen.correct' : 'screen.lockout')
-        : (_denied ? 'screen.denied' : null);
-    if (name == null || !Atlas.has('minigame')) return const SizedBox.shrink();
-    return IgnorePointer(
-      child: Center(
-        child: AtlasImage(
-          sheet: 'minigame',
-          name: name,
-          height: min(widget.height * 0.5, 170).toDouble(),
-          keep: 0.7,
-        ),
-      ),
-    );
-  }
 }
 
 class _Btn extends StatelessWidget {

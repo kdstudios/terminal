@@ -81,6 +81,7 @@ class DualTerminalScreen extends StatelessWidget {
                         state: state,
                         events: events,
                         typer: consoleTyper,
+                        combat: combat,
                       )
                     : NarrativeTerminal(
                         key: const ValueKey('narrative'),

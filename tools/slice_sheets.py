@@ -207,6 +207,94 @@ def resolve(sheet, sprites):
     return {'names': names, 'rows': rows, 'pools': pools}
 
 
+
+# ---------------------------------------------------------------------------
+# Cleaning + repacking
+# ---------------------------------------------------------------------------
+KEEP_FRACTION = {'minigame': 0.03}      # other sheets: 0.12 of the biggest piece
+KEEP_ALL = {('minigame', 'pick.snapped'), ('minigame', 'pick.broken')}   # intentional fragments
+
+
+def clean_sprite(crop, frac):
+    """Drop everything that is not part of the sprite itself: pixels that belong
+    to a neighbouring sprite (bounding boxes overlap on the sheet) and loose
+    specks. Pieces are bridged with a 2px dilation so thin parts (antennas,
+    rifle barrels) stay attached; the soft anti-aliased fringe of kept pieces
+    is preserved."""
+    a = np.array(crop)
+    alpha = a[..., 3]
+    mask = alpha > THR
+    if not mask.any():
+        return crop
+    lab, n = ndi.label(ndi.binary_dilation(mask, np.ones((3, 3)), iterations=2))
+    areas = ndi.sum(mask, lab, index=np.arange(1, n + 1))
+    big = areas.max()
+    keep_ids = [i + 1 for i, ar in enumerate(areas) if ar >= max(frac * big, 10)]
+    core = np.isin(lab, keep_ids) & mask
+    kept = ndi.binary_dilation(core, np.ones((3, 3)), iterations=2) & (alpha > 0)
+    a[..., 3] = np.where(kept, alpha, 0)
+    a[~kept] = 0
+    return Image.fromarray(a, 'RGBA')
+
+
+def trim(img):
+    bb = img.getchannel('A').point(lambda v: 255 if v > 0 else 0).getbbox()
+    return (img.crop(bb), bb) if bb else (img, (0, 0, img.width, img.height))
+
+
+def pack(images, width=2048, pad=3):
+    """Shelf-pack images (tall first). Returns (atlas, rects by index)."""
+    order = sorted(range(len(images)), key=lambda i: -images[i].height)
+    x = y = shelf = 0
+    pos = {}
+    for i in order:
+        w, h = images[i].size
+        if x + w + pad > width:
+            x, y, shelf = 0, y + shelf + pad, 0
+        pos[i] = (x + pad, y + pad)
+        x += w + pad
+        shelf = max(shelf, h + pad)
+    H = y + shelf + pad
+    atlas = Image.new('RGBA', (width, H), (0, 0, 0, 0))
+    for i, (px, py) in pos.items():
+        atlas.alpha_composite(images[i], (px, py))
+    return atlas, pos
+
+
+def clean_and_pack(sheet, src_im, data):
+    names_by_idx = {}
+    for k, v in data['names'].items():
+        names_by_idx.setdefault(v, k)
+    for k, ids in data['rows'].items():
+        for j, v in enumerate(ids):
+            names_by_idx.setdefault(v, f'{k}_{j:02d}')
+    frac = KEEP_FRACTION.get(sheet, 0.12)
+    imgs, folder = [], os.path.join(ROOT, 'art_clean', sheet)
+    os.makedirs(folder, exist_ok=True)
+    for f in os.listdir(folder):
+        os.remove(os.path.join(folder, f))
+    removed = 0
+    for sp in data['sprites']:
+        crop = src_im.crop((sp['x'], sp['y'], sp['x'] + sp['w'], sp['y'] + sp['h'])).convert('RGBA')
+        nm = names_by_idx.get(sp['i'], '')
+        before = int((np.array(crop)[..., 3] > 0).sum())
+        c = crop if (sheet, nm) in KEEP_ALL else clean_sprite(crop, frac)
+        c, bb = trim(c)
+        removed += before - int((np.array(c)[..., 3] > 0).sum())
+        imgs.append(c)
+        c.save(os.path.join(folder, f"{sp['i']:03d}{'_' + nm if nm else ''}.png"))
+    atlas, pos = pack(imgs)
+    for sp, c in zip(data['sprites'], imgs):
+        px, py = pos[sp['i']]
+        a = np.array(c)[..., 3] > THR
+        band = a[int(c.height * 0.7):]
+        xs = np.where(band)[1]
+        sp.update(x=px, y=py, w=c.width, h=c.height, ax=int(round(xs.mean())) if len(xs) else c.width // 2)
+    data.update(width=atlas.width, height=atlas.height)
+    atlas.save(os.path.join(OUT, sheet + '.png'))
+    print(f'  cleaned {sheet}: {len(imgs)} sprites, {removed} stray/foreign pixels removed, atlas {atlas.size}')
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(DBG, exist_ok=True)
@@ -214,7 +302,6 @@ def main():
         src = os.path.join(SRC, fname)
         boxes = detect(src, dil, min_area, max_w, max_h)
         im = Image.open(src)
-        shutil.copyfile(src, os.path.join(OUT, name + '.png'))
         alpha = np.array(im.convert('RGBA'))[..., 3] > THR
 
         def foot_x(x, y, w, h):
@@ -229,6 +316,7 @@ def main():
                              'ax': foot_x(int(x), int(y), int(w), int(h))}
                             for i, (x, y, w, h) in enumerate(boxes)]}
         data.update(resolve(name, data['sprites']))
+        clean_and_pack(name, im, data)
         with open(os.path.join(OUT, name + '.json'), 'w') as f:
             json.dump(data, f)
         print(f'{name}: {len(boxes)} sprites')

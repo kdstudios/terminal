@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../game/combat_system.dart';
 import '../game/event_system.dart';
 import '../game/fx.dart';
 import '../game/game_state.dart';
 import '../game/typewriter.dart';
+import 'combat_actions.dart';
 import 'console_box.dart';
 import 'terminal_frame.dart';
 import 'theme.dart';
@@ -14,15 +16,35 @@ class EncounterLog extends StatelessWidget {
   final GameState state;
   final EventSystem events;
   final TypewriterController typer; // the encounter console
+  final CombatSystem combat; // its buttons get their own box during fights
   const EncounterLog({
     super.key,
     required this.state,
     required this.events,
     required this.typer,
+    required this.combat,
   });
 
   @override
   Widget build(BuildContext context) {
+    final log = _log();
+    return ListenableBuilder(
+      listenable: state,
+      builder: (_, __) {
+        if (state.mode != GameMode.combat || state.combat == null) return log;
+        // Fight: the log keeps the left, the action box takes a thumb-width strip on the right.
+        return LayoutBuilder(builder: (context, c) {
+          final bw = (c.maxWidth * 0.36).clamp(120.0, 176.0).toDouble();
+          return Row(children: [
+            Expanded(child: log),
+            SizedBox(width: bw, child: CombatActions(state: state, system: combat, typer: typer)),
+          ]);
+        });
+      },
+    );
+  }
+
+  Widget _log() {
     return TerminalFrame(
       title: 'ENCOUNTER LOG',
       child: ListenableBuilder(

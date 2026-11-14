@@ -115,7 +115,7 @@ class LockpickingSystem {
     final bonus = s.flawless ? 10 * s.level : 0;
     state.addLog('> LOCK OPENED', LogKind.system, notify: false);
     if (s.flawless) {
-      state.addLog('> CLEAN OPEN BONUS', LogKind.loot, notify: false);
+      state.addLog('> CLEAN OPEN BONUS', LogKind.loot, notify: false, recap: false);
     }
     state.addLog('+ ${reward + bonus} SCRAP', LogKind.loot, notify: false);
     if (_rng.nextDouble() < 0.25) {

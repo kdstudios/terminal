@@ -497,12 +497,19 @@ class GameState extends ChangeNotifier {
   /// While an encounter is on the main screen, everything said goes to its
   /// console. Otherwise it goes to the narrative log.
   void addLog(String text, LogKind kind,
-      {bool notify = true, int? pauseMs, VoidCallback? effect, bool silent = false}) {
+      {bool notify = true,
+      int? pauseMs,
+      VoidCallback? effect,
+      bool silent = false,
+      bool recap = true}) {
+    // recap: false keeps a line in the encounter log only (it is not replayed
+    // into the narrative log when the encounter ends).
     final line = LogLine(text, kind, pauseMs: pauseMs, effect: effect, silent: silent);
     final toConsole = inEncounter;
     if (toConsole) {
       console.add(line);
       if (!silent &&
+          recap &&
           (kind == LogKind.loot ||
               text.startsWith('> LEVEL UP') ||
               text.startsWith('> QUEST'))) {
