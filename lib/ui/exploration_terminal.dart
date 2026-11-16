@@ -83,19 +83,15 @@ class _ExplorationTerminalState extends State<ExplorationTerminal>
                               ? 'ENCOUNTER'
                               : 'EXPLORATION // ${widget.state.region}${widget.state.walkingPaused ? ' (STOPPED)' : ''}',
           child: inHack
-              ? Backdrop(
-                  tile: 'bg.wall',
-                  child: HackingView(
-                      state: widget.state,
-                      system: widget.hacking,
-                      typer: widget.consoleTyper))
+              ? HackingView(
+                  state: widget.state,
+                  system: widget.hacking,
+                  typer: widget.consoleTyper)
               : inLock
-              ? Backdrop(
-                  tile: 'bg.steel',
-                  child: LockpickView(
-                      state: widget.state,
-                      system: widget.lockpicking,
-                      typer: widget.consoleTyper))
+              ? LockpickView(
+                  state: widget.state,
+                  system: widget.lockpicking,
+                  typer: widget.consoleTyper)
               : inCombat
               ? CombatView(state: widget.state, system: widget.combat, typer: widget.consoleTyper)
               : inHome

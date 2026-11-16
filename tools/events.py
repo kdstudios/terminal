@@ -209,7 +209,7 @@ def _scene_with_sprites(seed, y0, parts, extra=None):
 def rival():
     def x(c):
         c.paint(c.rect(60, 50, 70, 60), WOOD, base=.55); c.line((60, 55), (69, 55), WOOD[0]); c.px([(64, 52), (65, 52)], YEL)
-    return _scene_with_sprites(11, 62, [('world_a', 'trooper.0', 60, 136, False, 1), ('world_a', 'trooper.1', 196, 134, False, 1)], x)
+    return _scene_with_sprites(11, 62, [('world_a', 'trooper.0', 60, 136, False, 1), ('world_a', 'trooper.1', 196, 134, True, 1)], x)
 
 
 def gang():

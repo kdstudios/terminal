@@ -3,6 +3,12 @@
 VERSIONING RULE: every time anything is changed, bump `kVersion` in `lib/version.dart`
 (and `version:` in pubspec.yaml) and add an entry here. The version is shown on the title screen.
 
+## 0.4.2
+- Feral Straggler now faces the player in combat (its sheet art faces right, so it is flipped like the raider).
+- Lockpick and terminal minigames are back on the plain CRT screen (dark tube, scanlines, glow), matching the
+  encounter log. The tiled wall backdrop was removed from them. (Event screens keep it.)
+- Rival Scavengers event art: the straggler now faces the raider.
+
 ## 0.4.1
 - Clouds redrawn: full rounded cumulus (no flat cut-off bottoms), single puffs, wide banks, a towering cumulus,
   thin wisps and two-tone layered banks; two cloud layers at different depths.

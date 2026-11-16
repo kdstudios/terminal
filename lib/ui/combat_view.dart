@@ -210,7 +210,7 @@ const _enemySprites = <EnemyType, String>{
 };
 
 /// Sprites drawn facing right on the sheet (everything else faces left).
-const _faceRight = <EnemyType>{EnemyType.raider};
+const _faceRight = <EnemyType>{EnemyType.raider, EnemyType.straggler};
 
 AtlasSprite? _enemySprite(EnemyType t) {
   final ref = _enemySprites[t];
