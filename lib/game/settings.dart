@@ -17,6 +17,7 @@ class Settings extends ChangeNotifier {
   double musicVolume = 0.5;
   int theme = 0; // index into termThemes
   int textSize = 1; // 0 small, 1 normal, 2 large
+  double colorBleed = 0.0; // 0 = pure green phosphor .. 1 = the sprites' own colours
 
   double get textScale => const [0.9, 1.0, 1.2][textSize];
 
@@ -34,6 +35,7 @@ class Settings extends ChangeNotifier {
       musicVolume = ((j['musicVolume'] as num?)?.toDouble() ?? musicVolume).clamp(0.0, 1.0).toDouble();
       theme = min(themeCount - 1, max(0, (j['theme'] as num?)?.toInt() ?? 0));
       textSize = min(2, max(0, (j['textSize'] as num?)?.toInt() ?? 1));
+      colorBleed = ((j['colorBleed'] as num?)?.toDouble() ?? colorBleed).clamp(0.0, 1.0).toDouble();
       notifyListeners();
     } catch (e) {
       debugPrint('Settings load failed: $e');
@@ -61,6 +63,7 @@ class Settings extends ChangeNotifier {
           'musicVolume': musicVolume,
           'theme': theme,
           'textSize': textSize,
+          'colorBleed': colorBleed,
         }),
       );
     } catch (e) {

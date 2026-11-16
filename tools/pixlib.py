@@ -100,11 +100,12 @@ class Canvas:
         self.px([(x - 1, y), (x + 1, y)], col) if size else None
 
     # ---- output --------------------------------------------------------
-    def finish(self, scale=2):
+    def finish(self, scale=2, outline=OUTLINE):
         a = self.rgba[..., 3] > 0
         pad = np.pad(a, 1)
         edge = ~a & (pad[:-2, 1:-1] | pad[2:, 1:-1] | pad[1:-1, :-2] | pad[1:-1, 2:])
         out = self.rgba.copy()
-        out[edge] = (*OUTLINE, 255)
+        if outline is not None:
+            out[edge] = (*outline, 255)
         im = Image.fromarray(out, 'RGBA')
         return im.resize((im.width * scale, im.height * scale), Image.NEAREST)

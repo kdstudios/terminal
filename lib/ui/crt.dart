@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../game/fx.dart';
 import 'theme.dart';
 
 /// Green-phosphor CRT look: a colour filter for sprites plus a screen overlay.
@@ -11,6 +12,10 @@ class Crt {
   /// [gain] dims (<1) or boosts (>1) everything; far scenery uses a low gain.
   /// Cached: building matrices every frame would be wasteful on mobile.
   static ColorFilter phosphor(Color tint, {double keep = 0.12, double gain = 1.0}) {
+    // The player's "colour bleed" setting lets the sprites' own colours through
+    // everywhere the filter is used (quantised so the cache stays small).
+    final bleed = (Fx.settings.colorBleed * 20).round() / 20;
+    keep = keep + (1 - keep) * bleed;
     return _cache.putIfAbsent('${tint.toARGB32()}|$keep|$gain', () {
       const lr = 0.2126, lg = 0.7152, lb = 0.0722;
       final k = 1 - keep;

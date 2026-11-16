@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'combat_session.dart';
+import 'flavor_gen.dart';
 import 'fx.dart';
 import 'game_state.dart';
 import 'quests.dart';
@@ -116,6 +117,7 @@ class CombatSystem {
         s.playerDefending = true;
         s.fx.add(const CombatFx(CombatFxKind.defend));
         state.addLog('> YOU BRACE FOR IMPACT.', LogKind.system, notify: false);
+        state.addLog(CombatGen.defend(_rng), LogKind.narrative, notify: false);
         break;
       case PlayerAction.item:
         if (state.stimpacks <= 0) {
@@ -147,10 +149,13 @@ class CombatSystem {
     state.combat = null;
     if (died) {
       state.arriveHome(); // death sends you home
-      state.endEncounter(recap: false);
+      state.endEncounter();
     } else {
+      final fled = s.outcome == CombatOutcome.fled;
       state.mode = GameMode.exploring;
-      state.endEncounter(); // the log resumes with a short recap
+      state.endEncounter(
+          summary: fled ? '> COMBAT: ESCAPED' : '> COMBAT: VICTORY',
+          kind: fled ? LogKind.warning : LogKind.system);
       state.refresh();
     }
   }
@@ -169,7 +174,11 @@ class CombatSystem {
     final hitBonus = min(0.2, 0.02 * state.skill('COMBAT')); // Combat skill
     if (_rng.nextDouble() > (heavy ? 0.7 : 0.9) + hitBonus) {
       s.fx.add(CombatFx(CombatFxKind.miss, crit: heavy));
-      state.addLog(_playerMiss[_rng.nextInt(_playerMiss.length)], LogKind.warning,
+      state.addLog(
+          _rng.nextDouble() < 0.85
+              ? CombatGen.playerMiss(_rng, state.weaponId, enemyKind(s.type), s.template.short)
+              : _playerMiss[_rng.nextInt(_playerMiss.length)],
+          LogKind.warning,
           notify: false);
       return;
     }
@@ -189,9 +198,17 @@ class CombatSystem {
     s.hp = max(0, s.hp - dmg);
     s.fx.add(CombatFx(heavy ? CombatFxKind.heavy : CombatFxKind.shot, amount: dmg, crit: crit));
     final hitPool = _weaponHits[state.weaponId] ?? _weaponHits['pipe']!;
-    state.addLog(hitPool[_rng.nextInt(hitPool.length)], LogKind.narrative, notify: false);
+    state.addLog(
+        _rng.nextDouble() < 0.82
+            ? CombatGen.playerHit(_rng, state.weaponId, enemyKind(s.type))
+            : hitPool[_rng.nextInt(hitPool.length)],
+        LogKind.narrative,
+        notify: false);
     if (crit) {
-      state.addLog(_critLines[_rng.nextInt(_critLines.length)], LogKind.loot, notify: false);
+      state.addLog(
+          _rng.nextDouble() < 0.7 ? CombatGen.crit(_rng) : _critLines[_rng.nextInt(_critLines.length)],
+          LogKind.loot,
+          notify: false);
     }
     state.addLog('DAMAGE DEALT: $dmg${crit ? ' (CRITICAL!)' : ''}', LogKind.system,
         notify: false);
@@ -208,7 +225,9 @@ class CombatSystem {
     state.addLog('> YOU USE A STIMPACK. +${state.hp - before} HP', LogKind.loot,
         notify: false);
     state.gainSkill('SURVIVAL');
-    state.addLog(_stimLines[_rng.nextInt(_stimLines.length)], LogKind.narrative,
+    state.addLog(
+        _rng.nextDouble() < 0.7 ? CombatGen.stim(_rng) : _stimLines[_rng.nextInt(_stimLines.length)],
+        LogKind.narrative,
         notify: false);
   }
 
@@ -219,10 +238,15 @@ class CombatSystem {
     state.addLog('> YOU ATTEMPT TO ESCAPE.', LogKind.system, notify: false);
     if (_rng.nextDouble() < chance) {
       s.outcome = CombatOutcome.fled;
+      state.addLog(CombatGen.escapeOk(_rng), LogKind.narrative, notify: false);
       state.addLog('> ESCAPE SUCCESSFUL.', LogKind.system);
       return true;
     }
-    state.addLog('The ${s.template.short} cuts off your escape!', LogKind.warning,
+    state.addLog(
+        _rng.nextDouble() < 0.5
+            ? CombatGen.escapeFail(_rng)
+            : 'The ${s.template.short} cuts off your escape!',
+        LogKind.warning,
         notify: false);
     return false;
   }
@@ -263,6 +287,10 @@ class CombatSystem {
       return;
     }
     s.turn++;
+    // Now and then the wasteland interrupts with something absurd.
+    if (_rng.nextDouble() < 0.16) {
+      state.addLog(CombatGen.quip(_rng), LogKind.narrative, notify: false);
+    }
     state.addLog('> YOUR TURN.', LogKind.system);
   }
 
@@ -270,6 +298,10 @@ class CombatSystem {
     s.playerDefending = false;
     s.turn++;
     state.addLog(text, LogKind.warning, notify: false);
+    // Now and then the wasteland interrupts with something absurd.
+    if (_rng.nextDouble() < 0.16) {
+      state.addLog(CombatGen.quip(_rng), LogKind.narrative, notify: false);
+    }
     state.addLog('> YOUR TURN.', LogKind.system);
   }
 
@@ -280,7 +312,9 @@ class CombatSystem {
     if (!forceHit && _rng.nextDouble() >= hitChance) {
       s.fx.add(const CombatFx(CombatFxKind.enemyMiss));
       state.addLog(
-          _enemyMiss[_rng.nextInt(_enemyMiss.length)].replaceAll('{n}', t.short),
+          _rng.nextDouble() < 0.75
+              ? CombatGen.enemyMiss(_rng, enemyKind(s.type), t.short)
+              : _enemyMiss[_rng.nextInt(_enemyMiss.length)].replaceAll('{n}', t.short),
           LogKind.system,
           notify: false);
       return;
@@ -300,8 +334,8 @@ class CombatSystem {
     final worn = state.armorId;
     if (worn != null) state.wear(worn, 1); // every hit wears your armor
     state.addLog(
-        t.hitLines.isEmpty
-            ? 'The ${t.short} ${t.verb} you.'
+        t.hitLines.isEmpty || _rng.nextDouble() < 0.55
+            ? CombatGen.enemyHit(_rng, enemyKind(s.type), t.short)
             : t.hitLines[_rng.nextInt(t.hitLines.length)],
         LogKind.danger,
         notify: false);
@@ -318,7 +352,10 @@ class CombatSystem {
         state.withBench(((8 + _rng.nextInt(11)) * s.template.scrapMult * mult).round());
     s.scrapGained = scrap;
     state.addLog('> ${s.name} DEFEATED', LogKind.system, notify: false);
-    if (s.template.dieLines.isNotEmpty) {
+    if (s.template.dieLines.isEmpty || _rng.nextDouble() < 0.6) {
+      state.addLog(CombatGen.death(_rng, enemyKind(s.type), s.template.short), LogKind.narrative,
+          notify: false);
+    } else {
       state.addLog(s.template.dieLines[_rng.nextInt(s.template.dieLines.length)],
           LogKind.narrative, notify: false);
     }

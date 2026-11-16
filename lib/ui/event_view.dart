@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../game/event_data.dart';
 import '../game/event_session.dart';
 import '../game/game_state.dart';
+import 'atlas.dart';
+import 'crt.dart';
 import 'sprites.dart';
 import 'theme.dart';
 
@@ -39,6 +41,18 @@ class _ScenePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // New derived illustration (full colour, run through the CRT filter).
+    final art = Atlas.named('derived', 'event.$id');
+    if (art != null) {
+      final k = min(size.width / art.w, size.height / art.h);
+      art.drawRect(
+          canvas,
+          Rect.fromCenter(center: size.center(Offset.zero), width: art.w * k, height: art.h * k),
+          Paint()
+            ..filterQuality = FilterQuality.medium
+            ..colorFilter = Crt.phosphor(T.green, keep: 0.5));
+      return;
+    }
     final im = Sprites.get('event_$id');
     if (im != null) {
       final k = min(size.width / im.width, size.height / im.height);

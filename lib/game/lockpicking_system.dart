@@ -122,6 +122,9 @@ class LockpickingSystem {
       state.lockpicks++;
       state.addLog('+ 1 LOCKPICK', LogKind.loot, notify: false);
     }
+    // Every lock leaves its mark on the pick, even a clean open.
+    s.stress = min(0.97, s.stress + 0.05 + 0.04 * s.level);
+    state.pickStrain = s.stress;
     state.gainXp(15 * s.level);
     state.gainSkill('LOCKPICKING');
     state.questEvent(QuestKind.locks, 1);
@@ -154,9 +157,13 @@ class LockpickingSystem {
 
   void _end() {
     _stop();
+    final s = state.lockpick;
+    final String result = s == null || !s.finished ? 'IGNORED' : (s.success ? 'SUCCESS' : 'FAILED');
     state.lockpick = null;
     state.mode = GameMode.exploring;
-    state.endEncounter(); // the log resumes with a short recap
+    state.endEncounter(
+        summary: '> LOCKPICK: $result',
+        kind: result == 'FAILED' ? LogKind.warning : LogKind.system);
     state.refresh();
   }
 }

@@ -50,3 +50,11 @@ Add a sprite: put it on a sheet, re-run the slicer, add a position to `sprite_na
   Preview: `python3 tools/creatures.py` -> work/creatures.png. Individual PNGs: `art_clean/derived/`.
 * Combat: `CombatSystem` appends `CombatFx` events; `combat_view.dart` plays them back on a timeline.
   Buttons live in `combat_actions.dart`, mounted beside the encounter log.
+
+### Versioning rule
+Every change bumps `kVersion` (lib/version.dart) + pubspec `version:` and adds an entry to CHANGELOG.md.
+
+### Text
+Edit the banks in `tools/text/explore_banks.py` and `tools/text/combat_banks.py`, then run
+`python3 tools/gen_flavor.py --samples` (writes lib/game/flavor_gen.dart and prints samples + how many distinct
+lines the templates can produce).  {slot} = pick from a bank, {slot^} = capitalise, {n} = the enemy's name.

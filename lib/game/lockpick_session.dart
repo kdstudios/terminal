@@ -19,7 +19,6 @@ class LockpickSession extends ChangeNotifier {
   static const _follow = 4.0; // cylinder catches up to the lever (per second)
   static const _returnSpeed = 5.0; // cylinder springs back (per second)
   static const _leverReturn = 3.0; // released lever springs back (per second)
-  static const _rest = 0.25; // strain recovered per second while resting
   static const _strainScale = 2.2; // overall strain speed
   static const _strainPower = 1.5; // >1 = hard over-pulls hurt disproportionately
 
@@ -166,9 +165,9 @@ class LockpickSession extends ChangeNotifier {
       final excess = lever - limit; // how hard you're pulling against the lock
       blocked = excess > 0.03;
       if (blocked) {
+        // Wear is permanent: Pick HP never recovers, it only ever goes down
+        // until the pick snaps (then you start a fresh one).
         stress += stressRate * _strainScale * pow(excess, _strainPower) * dt;
-      } else if (lever < 0.05) {
-        stress = max(0.0, stress - _rest * dt); // only recovers when relaxed
       }
       if (stress >= 1.0) {
         ev = LockEvent.snapped;

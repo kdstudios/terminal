@@ -148,6 +148,8 @@ class TypewriterController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static DateTime _lastLootSfx = DateTime.fromMillisecondsSinceEpoch(0);
+
   /// Sounds are tied to the text, so they land as each line appears.
   void _lineSound(LogLine l) {
     if (l.silent) return;
@@ -155,7 +157,10 @@ class TypewriterController extends ChangeNotifier {
     if (t.startsWith('> LEVEL UP')) {
       Fx.play(Sfx.levelup);
     } else if (l.kind == LogKind.loot) {
-      Fx.play(Sfx.loot);
+      // One chime per reward burst (+scrap, +xp, ...), not one per line.
+      final now = DateTime.now();
+      if (now.difference(_lastLootSfx).inMilliseconds > 1800) Fx.play(Sfx.loot);
+      _lastLootSfx = now;
     } else if (t.startsWith('> ENCOUNTER')) {
       Fx.play(Sfx.alarm);
     } else if (t.startsWith('> HOSTILE')) {

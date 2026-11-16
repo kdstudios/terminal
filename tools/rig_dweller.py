@@ -54,6 +54,9 @@ def build():
 
     body_mask = a & (yy < WAIST)
     parts['dw.body'] = _piece(fr, body_mask)
+    # Unarmed body for melee poses: the rifle (x>=32, rows 26-38) removed, hands kept.
+    rifle = (xx >= 32) & (yy >= 26) & (yy <= 38)
+    parts['dw.body_melee'] = _piece(fr, body_mask & ~rifle)
 
     for k, back in enumerate((True, False)):           # leg 0 = back leg, leg 1 = front leg
         side = (xx < SPLIT_X) if back else (xx >= SPLIT_X)
@@ -83,6 +86,8 @@ def build():
         'hip': [float(np.mean([l['P'][0] for l in legs])), float(HIP_Y)],
         'sole_y': float(h),
         'body': 'dw.body',
+        'body_melee': 'dw.body_melee',
+        'hand': [28.5, 33.5],      # where a held weapon is gripped (frame space)
         'legs': legs,
         'parts': {n: [ox, oy] for n, (im, ox, oy) in parts.items()},
     }

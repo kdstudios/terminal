@@ -11,6 +11,8 @@ import 'crt.dart';
 import 'sprites.dart';
 import 'theme.dart';
 
+String _hp(double stress) => '${((1 - stress.clamp(0.0, 1.0)) * 100).round()}%';
+
 String _strainBar(double stress) {
   final filled = min(8, max(0, (stress * 8).ceil()));
   return '[${'■' * filled}${'□' * (8 - filled)}]';
@@ -46,7 +48,7 @@ class LockpickView extends StatelessWidget {
           children: [
             Text('LOCK: ${s.lockName}   PICKS: ${'▮ ' * max(0, state.lockpicks)}',
                 style: T.mono(T.green, size: 13, bold: true)),
-            Text('STRAIN: ${_strainBar(s.stress)}',
+            Text('PICK HP: ${_hp(s.stress)}',
                 style: T.mono(s.stress > 0.6 ? T.red : T.green, size: 13)),
             Text('DRAG LOCK: AIM  //  PULL LEVER: TURN', style: T.mono(T.dim, size: 10)),
           ],
@@ -121,7 +123,7 @@ class LockpickView extends StatelessWidget {
               Text('LOCKED CONTAINER DETECTED', style: T.mono(T.amber, bold: true)),
               Text('LOCK: ${s.lockName}', style: T.mono(T.dim)),
               Text('LOCKPICKS: ${state.lockpicks}', style: T.mono(T.dim)),
-              Text('PICK STRAIN: ${_strainBar(s.stress)}',
+              Text('PICK HP: ${_hp(s.stress)}',
                   style: T.mono(s.stress > 0.6 ? T.red : T.dim)),
               const SizedBox(height: 8),
               AtlasImage(

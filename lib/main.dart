@@ -16,6 +16,7 @@ import 'ui/atlas.dart';
 import 'ui/metal_frame.dart';
 import 'ui/sprites.dart';
 import 'ui/theme.dart';
+import 'ui/title_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +46,9 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
       ExplorationSystem(_state, _hacking, _lockpicking, _combat, _events, _typer);
   late final SaveSystem _save = SaveSystem(_state);
   late final AudioSystem _audio = AudioSystem(Fx.settings, _state);
-  bool _ready = false;
+  bool _assetsReady = false; // art + settings loaded: the title screen can show
+  bool _started = false; // PLAY pressed
+  bool _ready = false; // save loaded: the game can show
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
     _boot();
   }
 
+  /// Loads settings and art so the title screen can appear.
   Future<void> _boot() async {
     await Fx.settings.load();
     T.setTheme(Fx.settings.theme);
@@ -61,6 +65,14 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
     await Sprites.loadAll();
     await FrameSkin.load(); // metal frame texture
     await Atlas.load(); // full-colour sprite sheets
+    if (mounted) setState(() => _assetsReady = true);
+  }
+
+  /// PLAY: start audio (browsers need a tap first), then load the latest save,
+  /// or begin a new game when there is none.
+  Future<void> _start() async {
+    if (_started) return;
+    setState(() => _started = true);
     await _audio.init();
     final loaded = await _save.load();
     _typer.clear(); // creates the typewriters and hooks them into the log
@@ -84,7 +96,7 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
       _audio.resume();
     } else {
       _audio.suspend(); // silence in the background
-      _save.save(); // and save whenever the app leaves the foreground
+      if (_ready) _save.save(); // save when the app leaves the foreground (never on the title screen)
     }
   }
 
@@ -144,9 +156,11 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
                     save: _save,
                     onNewGame: _newGame,
                   )
-                : Scaffold(
-                    body: Center(child: Text('BOOTING...', style: T.mono(T.green))),
-                  ),
+                : _assetsReady
+                    ? TitleScreen(onPlay: _start, starting: _started)
+                    : Scaffold(
+                        body: Center(child: Text('BOOTING...', style: T.mono(T.green))),
+                      ),
           ),
         );
       },

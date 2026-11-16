@@ -577,16 +577,14 @@ class GameState extends ChangeNotifier {
 
   /// Call after the mode has left the encounter: clears the console and
   /// recaps anything gained (scrap, XP, quests) in the narrative log.
-  void endEncounter({bool recap = true}) {
-    final r = List<LogLine>.of(_recap);
+  /// Leave the encounter console. Nothing from it is replayed into the narrative
+  /// log (the console already told the story); at most ONE short result line is
+  /// added, e.g. "> LOCKPICK: SUCCESS".
+  void endEncounter({String? summary, LogKind kind = LogKind.system}) {
     _recap.clear();
     console.clear();
     onConsoleReset?.call();
-    if (recap) {
-      for (final l in r) {
-        addLog(l.text, l.kind, notify: false, silent: true);
-      }
-    }
+    if (summary != null) addLog(summary, kind, notify: false, silent: true);
   }
 
   void toggleWalking() {

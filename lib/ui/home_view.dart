@@ -119,6 +119,7 @@ class _HomeViewState extends State<HomeView> {
               child: SpriteView(name: 'loc_safehouse', height: 64),
             ),
           ),
+          _menuBtn('[DEPART ON EXPEDITION]', T.amber, sys.depart),
           _menuBtn('[REST]  RESTORE HP', T.green, sys.rest),
           _menuBtn('[CHARACTER]${s.statPoints > 0 ? '  (+${s.statPoints})' : ''}',
               s.statPoints > 0 ? T.loot : T.green, () => _go('character')),
@@ -129,7 +130,6 @@ class _HomeViewState extends State<HomeView> {
           _menuBtn('[ARMOR]', T.green, () => _go('armor')),
           _menuBtn('[WORKSHOP]', T.green, () => _go('workshop')),
           _menuBtn('[UPGRADES]', T.green, () => _go('upgrades')),
-          _menuBtn('[DEPART ON EXPEDITION]', T.amber, sys.depart),
         ];
     }
   }

@@ -91,6 +91,16 @@ def main():
     items['sign.route66post'] = on_post(_crop('world_b', 'sign.route66'))
     rig_imgs, rig_meta = rig_dweller.build()
     items.update(rig_imgs)
+    from skyline import ITEMS as SKY
+    items.update(SKY())
+    from campfire import ITEMS as CAMP
+    items.update(CAMP())
+    from weapons import ITEMS as WPN
+    items.update(WPN())
+    from events import items as EVT
+    items.update(EVT())
+    import buildings
+    items.update(buildings.items())
     from creatures import CREATURES
     from backgrounds import BACKGROUNDS
     for k, fn in CREATURES.items():
@@ -113,7 +123,8 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     sheet.save(os.path.join(OUT, 'derived.png'))
     json.dump({'image': 'derived.png', 'width': W, 'height': H, 'sprites': sprites,
-               'names': names, 'rows': {}, 'pools': {}, 'rigs': {'dweller': rig_meta}},
+               'names': names, 'rows': {},
+               'pools': {k: [names[n] for n in v if n in names] for k, v in buildings.POOLS.items()}, 'rigs': {'dweller': rig_meta}},
               open(os.path.join(OUT, 'derived.json'), 'w'))
     print('derived:', list(items))
 

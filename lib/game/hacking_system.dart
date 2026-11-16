@@ -135,9 +135,13 @@ class HackingSystem {
   }
 
   void _end() {
+    final s = state.hacking;
+    final String result = s == null || !s.finished ? 'IGNORED' : (s.success ? 'SUCCESS' : 'FAILED');
     state.hacking = null;
     state.mode = GameMode.exploring;
-    state.endEncounter(); // the log resumes with a short recap
+    state.endEncounter(
+        summary: '> TERMINAL ACCESS: $result',
+        kind: result == 'FAILED' ? LogKind.warning : LogKind.system);
     state.refresh();
   }
 }

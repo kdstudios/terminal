@@ -3,6 +3,7 @@ import 'dart:math';
 import 'combat_system.dart';
 import 'event_system.dart';
 import 'flavor.dart';
+import 'flavor_gen.dart';
 import 'game_state.dart';
 import 'hacking_system.dart';
 import 'lockpicking_system.dart';
@@ -136,7 +137,9 @@ class ExplorationSystem {
     if (_rng.nextDouble() >= success) {
       state.addLog('> RESULT: NOTHING USEFUL', LogKind.warning, notify: false);
       final fails = [..._failLines, ...extraFailLines];
-      state.addLog(fails[_rng.nextInt(fails.length)], LogKind.narrative);
+      state.addLog(
+          _rng.nextDouble() < 0.8 ? ExploreGen.fail(_rng, _region()) : fails[_rng.nextInt(fails.length)],
+          LogKind.narrative);
       return;
     }
     final n = state.withBench(
@@ -146,7 +149,10 @@ class ExplorationSystem {
     final stim = _rng.nextDouble() < 0.08;
     state.addLog('> RESULT: SUCCESS', LogKind.system, notify: false);
     final finds = [...scavengeLines, ...extraScavengeLines];
-    state.addLog(finds[_rng.nextInt(finds.length)], LogKind.narrative, notify: false);
+    state.addLog(
+        _rng.nextDouble() < 0.8 ? ExploreGen.find(_rng, _region()) : finds[_rng.nextInt(finds.length)],
+        LogKind.narrative,
+        notify: false);
     state.addLog('+ $n SCRAP', LogKind.loot, notify: false, effect: () {
       state.addScrap(n);
       state.gainXp(3);
@@ -205,6 +211,8 @@ class ExplorationSystem {
     state.refresh();
   }
 
+  int _region() => regions.indexOf(regionAt(state.distanceKm));
+
   /// What you see, hear and think. Lines are drawn from big pools (region
   /// sights and thoughts, sounds, weather, scrawled notes, radio, memories),
   /// and thoughts react to how you're doing. Recent lines are not repeated.
@@ -226,23 +234,38 @@ class ExplorationSystem {
       return pool[_rng.nextInt(pool.length)];
     }
 
+    // Mostly freshly generated sentences (see flavor_gen.dart), seasoned with the
+    // hand-written pools; recently shown lines are not repeated.
+    final reg = regions.indexOf(r);
+    String gen(String Function(Random, int) g, List<String> pool) {
+      if (_rng.nextDouble() < 0.78) {
+        for (int i = 0; i < 4; i++) {
+          final line = g(_rng, reg);
+          if (!_recent.contains(line)) return line;
+        }
+      }
+      return pick(pool);
+    }
+
     final String line;
     var kind = LogKind.narrative;
     final roll = _rng.nextDouble();
-    if (roll < 0.28) {
-      line = pick(sights);
-    } else if (roll < 0.50) {
+    if (roll < 0.26) {
+      line = gen(ExploreGen.sight, sights);
+    } else if (roll < 0.46) {
       final useSituational = situational.isNotEmpty && _rng.nextDouble() < 0.4;
-      line = pick(useSituational ? situational : thoughts);
+      line = useSituational ? pick(situational) : gen(ExploreGen.thought, thoughts);
       kind = LogKind.thought;
-    } else if (roll < 0.64) {
-      line = pick(soundLines);
-    } else if (roll < 0.74) {
-      line = pick(weatherLines);
-    } else if (roll < 0.88) {
-      line = pick(noteLines);
+    } else if (roll < 0.58) {
+      line = gen(ExploreGen.sound, soundLines);
+    } else if (roll < 0.66) {
+      line = gen(ExploreGen.smell, weatherLines);
+    } else if (roll < 0.76) {
+      line = gen(ExploreGen.weather, weatherLines);
+    } else if (roll < 0.89) {
+      line = gen(ExploreGen.note, noteLines);
     } else {
-      line = pick(radioLines);
+      line = gen(ExploreGen.radio, radioLines);
     }
     _recent.add(line);
     if (_recent.length > 30) _recent.removeAt(0);

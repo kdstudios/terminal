@@ -9,6 +9,7 @@ import '../game/typewriter.dart';
 import '../game/world.dart';
 import 'atlas.dart';
 import 'crt.dart';
+import 'dweller_rig.dart';
 import 'theme.dart';
 import 'wasteland_scene.dart';
 
@@ -33,6 +34,7 @@ class CombatView extends StatelessWidget {
             session: s,
             region: regions.indexOf(regionAt(state.distanceKm)),
             scroll: state.distanceKm * 400,
+            weapon: state.weaponId,
           ),
         Positioned(left: 8, top: 8, child: _EnemyHud(s)),
         Positioned(left: 8, bottom: 8, child: _PlayerHud(state)),
@@ -207,6 +209,9 @@ const _enemySprites = <EnemyType, String>{
   EnemyType.brute: 'derived:enemy.brute',
 };
 
+/// Sprites drawn facing right on the sheet (everything else faces left).
+const _faceRight = <EnemyType>{EnemyType.raider};
+
 AtlasSprite? _enemySprite(EnemyType t) {
   final ref = _enemySprites[t];
   return ref == null ? null : Atlas.resolveAt(ref, 0);
@@ -220,7 +225,9 @@ class _DuelStage extends StatefulWidget {
   final CombatSession session;
   final int region;
   final double scroll;
-  const _DuelStage({required this.session, required this.region, required this.scroll});
+  final String weapon; // equipped weapon id: decides how the dweller attacks
+  const _DuelStage(
+      {required this.session, required this.region, required this.scroll, required this.weapon});
 
   @override
   State<_DuelStage> createState() => _DuelStageState();
@@ -256,7 +263,7 @@ class _DuelStageState extends State<_DuelStage> with SingleTickerProviderStateMi
   Widget build(BuildContext context) => RepaintBoundary(
         child: CustomPaint(
           size: Size.infinite,
-          painter: _DuelPainter(widget.session, widget.region, _clock, _board, _now),
+          painter: _DuelPainter(widget.session, widget.region, _clock, _board, _now, widget.weapon),
         ),
       );
 }
@@ -267,7 +274,38 @@ class _DuelPainter extends CustomPainter {
   final SceneClock clock;
   final _Board board;
   final ValueNotifier<double> time;
-  _DuelPainter(this.s, this.region, this.clock, this.board, this.time) : super(repaint: time);
+  final String weapon;
+  _DuelPainter(this.s, this.region, this.clock, this.board, this.time, this.weapon)
+      : super(repaint: time);
+
+  static DwellerRig? _rig;
+  static bool _rigTried = false;
+
+  /// rifle = the aim-and-shoot frames; cutter = held tool firing a plasma bolt;
+  /// everything else is a melee weapon swung with the rig.
+  bool get _isRifle => weapon == 'rifle';
+  bool get _isCutter => weapon == 'cutter';
+  bool get _isMelee => !_isRifle && !_isCutter;
+  double get _idleAngle => _isCutter ? 90 : 25;
+
+  static double _lerp(double a, double b, double u) => a + (b - a) * u;
+
+  /// Melee swing: wind-up (0-.3), strike (.3-.5), recover (.5-1).
+  /// Returns (weapon angle in degrees from "up", lunge 0..1, body lean in degrees).
+  (double, double, double) _swingAt(double p, bool heavy) {
+    final wind = heavy ? -110.0 : -75.0, hit = heavy ? 140.0 : 120.0;
+    final idle = _idleAngle;
+    if (p < 0.3) {
+      final u = 1 - pow(1 - p / 0.3, 2).toDouble();
+      return (_lerp(idle, wind, u), 0.0, _lerp(2, -8, u));
+    }
+    if (p < 0.5) {
+      final u = pow((p - 0.3) / 0.2, 2).toDouble();
+      return (_lerp(wind, hit, u), u, _lerp(-8, 14, u));
+    }
+    final u = (p - 0.5) / 0.5, e = u * u * (3 - 2 * u);
+    return (_lerp(hit, idle, e), 1 - e, _lerp(14, 2, e));
+  }
 
   static double _bump(double p, double a, double b) =>
       (p <= a || p >= b) ? 0.0 : sin(pi * (p - a) / (b - a));
@@ -301,12 +339,13 @@ class _DuelPainter extends CustomPainter {
     final now = time.value;
     final unit = h * 0.2 / 78;
     final groundY = h * 0.78;
-    final footY = groundY + 16 * unit; // feet sink into the grass: no floating
+    final footY = groundY + kFeetDepth * unit; // stand at the bottom of the floor strip
     final f = min(h * 0.46 / 98, w * 0.0058);
     final ts = (min(w, h) / 420).clamp(0.8, 1.7).toDouble();
 
     // ---- derive this frame's pose from the timeline
     double shake = 0, pRecoil = 0, eKnock = 0, eLunge = 0, eDip = 0;
+    double swingAng = _idleAngle, lunge = 0, swingLean = 2, windAng = _idleAngle;
     double eFlash = 0, pFlash = 0;
     bool charging = s.charging && !s.finished;
     for (final a in board.anims) {
@@ -316,13 +355,29 @@ class _DuelPainter extends CustomPainter {
         case CombatFxKind.shot:
         case CombatFxKind.heavy:
           final heavy = a.fx.kind == CombatFxKind.heavy;
-          pRecoil += _bump(p, 0.05, 0.3) * (heavy ? 7 : 4);
+          if (_isMelee) {
+            final sw = _swingAt(p, heavy);
+            swingAng = sw.$1;
+            lunge = max(lunge, sw.$2);
+            swingLean = sw.$3;
+            windAng = heavy ? -110.0 : -75.0;
+          } else {
+            pRecoil += _bump(p, 0.05, 0.3) * (heavy ? 7 : 4);
+          }
           eKnock += _bump(p, 0.3, 0.75) * (heavy ? 12 : 6) * (a.fx.crit ? 1.4 : 1);
           if (p > 0.3 && p < 0.46) eFlash = 0.85;
           if (p > 0.3) shake += (heavy || a.fx.crit ? 6.0 : 2.5) * (1 - p) * sin(now * 70);
           break;
         case CombatFxKind.miss:
-          pRecoil += _bump(p, 0.05, 0.3) * 3;
+          if (_isMelee) {
+            final sw = _swingAt(p, a.fx.crit);
+            swingAng = sw.$1;
+            lunge = max(lunge, sw.$2);
+            swingLean = sw.$3;
+            windAng = a.fx.crit ? -110.0 : -75.0;
+          } else {
+            pRecoil += _bump(p, 0.05, 0.3) * 3;
+          }
           break;
         case CombatFxKind.enemyHit:
         case CombatFxKind.enemyMiss:
@@ -356,7 +411,7 @@ class _DuelPainter extends CustomPainter {
     double dt = board.deathStart >= 0 ? max(0.0, now - board.deathStart) : 0;
     final died = s.outcome == CombatOutcome.died, won = s.outcome == CombatOutcome.won;
     final fled = s.outcome == CombatOutcome.fled;
-    var px = px0 - pRecoil * f - (fled ? dt * 180 * unit : 0);
+    var px = px0 - pRecoil * f + lunge * 26 * f - (fled ? dt * 180 * unit : 0);
     final pAlpha = died ? (1 - dt / 0.9).clamp(0.0, 1.0).toDouble() : (fled ? (1 - dt / 0.8).clamp(0.0, 1.0).toDouble() : 1.0);
 
     // the enemy is scaled to the panel but never wider than ~46% of it
@@ -379,9 +434,54 @@ class _DuelPainter extends CustomPainter {
     }
 
     // dweller
-    if (player != null && pAlpha > 0) {
+    if (!_rigTried) {
+      _rigTried = true;
+      _rig = DwellerRig.load();
+    }
+    final held = _isRifle ? null : Atlas.named('derived', 'wpn.$weapon');
+    final useRig = !_isRifle && _rig != null && held != null;
+    if (pAlpha > 0) {
       final tint = pFlash > 0 ? T.red : T.green;
-      player.draw(canvas, Offset(px, footY), f, _img(tint, keep: pFlash > 0 ? 0.3 : 0.6, gain: 1.1, alpha: pAlpha));
+      final paint = _img(tint, keep: pFlash > 0 ? 0.3 : 0.6, gain: 1.1, alpha: pAlpha);
+      if (useRig) {
+        // Stance <-> lunge legs; a guard crouch while defending.
+        final l = lunge.clamp(0.0, 1.0).toDouble();
+        final guard = kneeling;
+        final th = guard ? const [-30.0, 80.0] : [_lerp(-14, -26, l), _lerp(16, 38, l)];
+        final fl = guard ? const [130.0, 85.0] : [_lerp(6, 30, l), 0.0];
+        final ang = guard ? -10.0 : swingAng;
+        final trail = _isMelee && lunge > 0 && swingAng > windAng + 5;
+        _rig!.drawPose(canvas,
+            ground: Offset(px, footY),
+            scale: f,
+            thighDeg: th,
+            flexDeg: fl,
+            leanDeg: guard ? 8 : swingLean,
+            breathe: sin(now * 2.2) * 0.5,
+            unarmed: true,
+            near: paint,
+            far: _img(tint, keep: 0.6, gain: 0.85, alpha: pAlpha),
+            overlay: (c, hand) {
+              final wlen = held!.h * 0.5;
+              c.save();
+              c.translate(hand.dx, hand.dy);
+              if (trail) {
+                // Slash trail along the tip's path.
+                final a0 = (windAng - 90) * pi / 180, a1 = (ang - 90) * pi / 180;
+                c.drawArc(Rect.fromCircle(center: Offset.zero, radius: wlen * 0.92), a0, a1 - a0, false,
+                    Paint()
+                      ..style = PaintingStyle.stroke
+                      ..strokeWidth = 5
+                      ..strokeCap = StrokeCap.round
+                      ..color = T.amber.withValues(alpha: 0.5));
+              }
+              c.rotate(ang * pi / 180);
+              held!.drawRect(c, Rect.fromLTWH(-held.w * 0.25, -wlen * 0.8, held.w * 0.5, wlen), paint);
+              c.restore();
+            });
+      } else if (player != null) {
+        player.draw(canvas, Offset(px, footY), f, paint);
+      }
     }
     // enemy (all enemy sprites face left already)
     if (enemy != null && eAlpha > 0) {
@@ -390,12 +490,12 @@ class _DuelPainter extends CustomPainter {
       final paint = eFlash > 0
           ? _flash(eFlash)
           : _img((hurt || warn) ? T.red : T.green, keep: warn ? 0.3 : 0.5, alpha: eAlpha);
-      enemy.draw(canvas, Offset(ex + jitter, ey), es, paint);
+      enemy.draw(canvas, Offset(ex + jitter, ey), es, paint, flip: _faceRight.contains(s.type));
     }
 
     // ---- effects
-    final muzzle = player == null
-        ? Offset(px + 30 * f, footY - 50 * f)
+    final muzzle = (player == null || useRig)
+        ? Offset(px + 56 * f, footY - 44 * f)
         : Offset(px + (player.w - player.ax) * f * 0.98, footY - player.h * f * (kneeling ? 0.6 : 0.62));
     final eh = enemy == null ? 60 * f : enemy.h * es;
     final target = Offset(ex, footY - eh * 0.55 - hover);
@@ -410,8 +510,9 @@ class _DuelPainter extends CustomPainter {
         case CombatFxKind.miss:
           final heavy = a.fx.kind == CombatFxKind.heavy || (a.fx.kind == CombatFxKind.miss && a.fx.crit);
           final miss = a.fx.kind == CombatFxKind.miss;
-          if (p > 0.05 && p < 0.22) _muzzleFlash(canvas, muzzle, (heavy ? 11 : 7) * f, (p - 0.05) / 0.17);
-          if (p > 0.1 && p < 0.34) {
+          final ranged = !_isMelee;
+          if (ranged && p > 0.05 && p < 0.22) _muzzleFlash(canvas, muzzle, (heavy ? 11 : 7) * f, (p - 0.05) / 0.17);
+          if (ranged && p > 0.1 && p < 0.34) {
             final u = (p - 0.1) / 0.24;
             final end = miss ? Offset(target.dx + 140 * f, target.dy - 30 * f) : target;
             final tip = Offset.lerp(muzzle, end, min(1.0, u * 1.8))!;

@@ -28,9 +28,11 @@ class DwellerRig {
   static const double footK = 0.35; // how much the foot follows the shin (rest = flat)
 
   final _Part _body;
+  final _Part? _bodyMelee; // the rifle removed, for melee / tool poses
   final List<_Leg> _legs;
   final Offset hip;
-  const DwellerRig._(this._body, this._legs, this.hip);
+  final Offset _hand; // where a held weapon is gripped (frame space)
+  const DwellerRig._(this._body, this._bodyMelee, this._legs, this.hip, this._hand);
 
   /// Sheet pixels the walker travels per full gait cycle (two steps).
   static const double stridePx = 50;
@@ -66,7 +68,9 @@ class DwellerRig {
           soleY - a.dy,
         ));
       }
-      return DwellerRig._(part(m['body'] as String), legs, pt(m['hip']));
+      final melee = m['body_melee'] == null ? null : part(m['body_melee'] as String);
+      return DwellerRig._(part(m['body'] as String), melee, legs, pt(m['hip']),
+          m['hand'] == null ? pt(m['hip']) : pt(m['hand']));
     } catch (_) {
       return null;
     }
@@ -78,9 +82,9 @@ class DwellerRig {
         Rect.fromLTWH(part.ox - pivot.dx, part.oy - pivot.dy, sp.w, sp.h), paint);
   }
 
-  /// [ground]: where the standing feet touch the ground, hip x. [phase]: gait
-  /// phase in radians. [energy]: 0 = standing, 1 = full stride (scales swing).
-  /// [t]: seconds, for the idle breathing.
+  /// Gait: [ground] is where the standing feet touch the ground (hip x), [phase]
+  /// the gait phase in radians, [energy] 0 = standing .. 1 = full stride, [t]
+  /// seconds (idle breathing).
   void draw(Canvas c,
       {required Offset ground,
       required double scale,
@@ -89,12 +93,40 @@ class DwellerRig {
       required double t,
       required Paint near,
       required Paint far}) {
-    final th = List<double>.filled(2, 0), sg = List<double>.filled(2, 0), flex = List<double>.filled(2, 0);
-    double maxDepth = 0;
+    final th = List<double>.filled(2, 0), flex = List<double>.filled(2, 0);
     for (int k = 0; k < 2; k++) {
       final p = phase + (k == 0 ? 0 : pi);
       th[k] = ampDeg * pi / 180 * energy * sin(p);
       flex[k] = flexDeg * pi / 180 * energy * max(0.0, cos(p));
+    }
+    _render(c, ground, scale, th, flex, sin(t * 2.2) * 0.5 * (1 - energy), 0, near, far);
+  }
+
+  /// A fixed pose instead of a gait: explicit thigh / knee angles per leg
+  /// ([back, front], degrees; thigh forward-positive, knee bend as in the gait).
+  /// [lean] tips the body forward. Used for sitting by the campfire.
+  void drawPose(Canvas c,
+      {required Offset ground,
+      required double scale,
+      required List<double> thighDeg,
+      required List<double> flexDeg,
+      double leanDeg = 0,
+      double breathe = 0,
+      bool unarmed = false,
+      void Function(Canvas c, Offset hand)? overlay,
+      required Paint near,
+      required Paint far}) {
+    _render(c, ground, scale, [for (final d in thighDeg) d * pi / 180],
+        [for (final d in flexDeg) d * pi / 180], breathe, leanDeg * pi / 180, near, far,
+        unarmed: unarmed, overlay: overlay);
+  }
+
+  void _render(Canvas c, Offset ground, double scale, List<double> th, List<double> flex,
+      double breathe, double lean, Paint near, Paint far,
+      {bool unarmed = false, void Function(Canvas c, Offset hand)? overlay}) {
+    final sg = List<double>.filled(2, 0);
+    double maxDepth = 0;
+    for (int k = 0; k < 2; k++) {
       sg[k] = th[k] - flex[k];
       final l = _legs[k];
       // Planted-foot rule: the lowest sole sits on the ground, so the body bobs
@@ -102,7 +134,6 @@ class DwellerRig {
       final d = l.lt * cos(th[k]) + l.ls * cos(sg[k]) + l.hf * cos(footK * sg[k]);
       maxDepth = max(maxDepth, d);
     }
-    final breathe = sin(t * 2.2) * 0.5 * (1 - energy);
 
     c.save();
     c.translate(ground.dx, ground.dy - (maxDepth + breathe) * scale);
@@ -128,7 +159,11 @@ class DwellerRig {
       _draw(c, l.thigh, l.k, paint);
       c.restore();
     }
-    _draw(c, _body, hip, near);
+    if (lean != 0) c.rotate(-lean);
+    _draw(c, unarmed && _bodyMelee != null ? _bodyMelee! : _body, hip, near);
+    // Drawn in the body's own frame (origin = hip, 1 unit = 1 sheet px), so a held
+    // weapon follows the lean. The callback gets the grip point.
+    overlay?.call(c, _hand - hip);
     c.restore();
   }
 }

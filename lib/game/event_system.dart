@@ -139,10 +139,11 @@ class EventSystem {
   void leave() {
     final s = state.event;
     if (s == null || !s.finished) return;
+    final title = dataEvents.where((e) => e.id == s.id).map((e) => e.title).firstOrNull ?? 'ENCOUNTER';
     state.event = null;
     state.mode = GameMode.exploring;
     state.questEvent(QuestKind.events, 1);
-    state.endEncounter();
+    state.endEncounter(summary: '> ENCOUNTER: $title RESOLVED');
     state.refresh();
   }
 
