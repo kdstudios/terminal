@@ -31,6 +31,17 @@ class AudioSystem {
     Sfx.alarm: 'audio/alarm.wav',
     Sfx.startup: 'audio/startup.wav',
     Sfx.growl: 'audio/growl.wav',
+    Sfx.whoosh: 'audio/whoosh.wav',
+    Sfx.thud: 'audio/thud.wav',
+    Sfx.slash: 'audio/slash.wav',
+    Sfx.gunshot: 'audio/gunshot.wav',
+    Sfx.plasma: 'audio/plasma.wav',
+    Sfx.crit: 'audio/crit.wav',
+    Sfx.block: 'audio/block.wav',
+    Sfx.heal: 'audio/heal.wav',
+    Sfx.death: 'audio/death.wav',
+    Sfx.charge: 'audio/charge.wav',
+    Sfx.brace: 'audio/brace.wav',
   };
 
   final Settings settings;

@@ -134,7 +134,8 @@ class _PlayerHud extends StatelessWidget {
 class _Anim {
   final CombatFx fx;
   final double t0, dur;
-  const _Anim(this.fx, this.t0, this.dur);
+  int fired = 0; // bit set of the sounds already played for this animation
+  _Anim(this.fx, this.t0, this.dur);
   double p(double now) => ((now - t0) / dur).clamp(0.0, 1.0).toDouble();
   bool active(double now) => now >= t0 && now <= t0 + dur;
 }
@@ -144,7 +145,8 @@ class _Anim {
 class _Board {
   final List<_Anim> anims = [];
   double queueEnd = 0, kneelFrom = -1, kneelUntil = -1, deathStart = -1;
-  bool _finished = false;
+  bool _finished = false, _deathSfx = false;
+  double freeze = 0; // seconds of hit-stop left: the stage clock stands still
 
   static double _dur(CombatFxKind k) {
     switch (k) {
@@ -169,10 +171,102 @@ class _Board {
     }
   }
 
-  void update(CombatSession s, double now, {required bool animate}) {
+  /// Plays each animation's sounds (and haptics) at the right moment, once.
+  void _sfx(_Anim a, double now, String weapon) {
+    final p = a.p(now);
+    void once(int bit, double at, void Function() f) {
+      if ((a.fired & bit) == 0 && p >= at) {
+        a.fired |= bit;
+        f();
+      }
+    }
+
+    final style = weapon == 'rifle' ? 1 : (weapon == 'cutter' ? 2 : 0); // melee / rifle / cutter
+    switch (a.fx.kind) {
+      case CombatFxKind.shot:
+      case CombatFxKind.heavy:
+      case CombatFxKind.miss:
+        final miss = a.fx.kind == CombatFxKind.miss;
+        final heavy = a.fx.kind == CombatFxKind.heavy || (miss && a.fx.crit);
+        once(1, style == 0 ? 0.24 : 0.06, () {
+          Fx.play(style == 1 ? Sfx.gunshot : (style == 2 ? Sfx.plasma : (weapon == 'machete' ? Sfx.slash : Sfx.whoosh)),
+              gain: heavy ? 1.0 : 0.85);
+          if (style != 0) Fx.light();
+        });
+        if (!miss) {
+          once(2, 0.31, () {
+            Fx.play(a.fx.crit ? Sfx.crit : (style == 0 && weapon != 'machete' ? Sfx.thud : Sfx.hit),
+                gain: heavy ? 1.0 : 0.9);
+            if (weapon == 'rpipe') Fx.play(Sfx.hit, gain: 0.7);
+            if (heavy || a.fx.crit) {
+              Fx.heavy();
+              freeze = heavy ? 0.09 : 0.07; // hit-stop: the world holds still for a beat
+            } else {
+              Fx.medium();
+            }
+          });
+        }
+        break;
+      case CombatFxKind.enemyHit:
+        once(1, 0.08, () => Fx.play(Sfx.whoosh, gain: 0.65));
+        once(2, 0.32, () {
+          Fx.play(a.fx.blocked ? Sfx.block : Sfx.hurt, gain: a.fx.crit ? 1.0 : 0.9);
+          if (a.fx.crit) {
+            Fx.heavy();
+            freeze = 0.07;
+          } else {
+            Fx.medium();
+          }
+        });
+        break;
+      case CombatFxKind.enemyMiss:
+        once(1, 0.1, () => Fx.play(Sfx.whoosh, gain: 0.45));
+        break;
+      case CombatFxKind.defend:
+        once(1, 0.05, () => Fx.play(Sfx.brace));
+        break;
+      case CombatFxKind.heal:
+        once(1, 0.05, () {
+          Fx.play(Sfx.heal);
+          Fx.light();
+        });
+        break;
+      case CombatFxKind.enemyCharge:
+        once(1, 0.05, () => Fx.play(Sfx.charge, gain: 0.8));
+        break;
+      case CombatFxKind.enemyCover:
+        break;
+    }
+  }
+
+  /// With reduced motion there is no timeline: play one fitting sound at once.
+  void _instant(CombatFx f, String weapon) {
+    switch (f.kind) {
+      case CombatFxKind.shot:
+      case CombatFxKind.heavy:
+        Fx.play(f.crit ? Sfx.crit : (weapon == 'rifle' ? Sfx.gunshot : (weapon == 'cutter' ? Sfx.plasma : Sfx.thud)));
+        break;
+      case CombatFxKind.enemyHit:
+        Fx.play(f.blocked ? Sfx.block : Sfx.hurt);
+        break;
+      case CombatFxKind.heal:
+        Fx.play(Sfx.heal);
+        break;
+      case CombatFxKind.defend:
+        Fx.play(Sfx.brace);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void update(CombatSession s, double now, {required bool animate, required String weapon}) {
     while (s.fx.isNotEmpty) {
       final f = s.fx.removeAt(0);
-      if (!animate) continue;
+      if (!animate) {
+        _instant(f, weapon);
+        continue;
+      }
       final start = max(now, queueEnd);
       final d = _dur(f.kind);
       anims.add(_Anim(f, start, d));
@@ -182,10 +276,20 @@ class _Board {
         kneelUntil = start + 2.4; // brace through the enemy's answer
       }
     }
+    for (final a in anims) {
+      if (now >= a.t0) _sfx(a, now, weapon);
+    }
     anims.removeWhere((a) => now > a.t0 + a.dur + 1.2);
     if (s.finished && !_finished) {
       _finished = true;
       deathStart = max(now, queueEnd);
+    }
+    if (_finished && !_deathSfx && now >= deathStart) {
+      _deathSfx = true;
+      if (s.outcome == CombatOutcome.won) {
+        Fx.play(Sfx.death);
+        Fx.heavy();
+      }
     }
   }
 }
@@ -238,14 +342,25 @@ class _DuelStageState extends State<_DuelStage> with SingleTickerProviderStateMi
   final _Board _board = _Board();
   final SceneClock _clock = SceneClock(); // never ticked: a still backdrop
   late final Ticker _ticker;
+  double _lastRaw = 0, _frozen = 0;
 
   @override
   void initState() {
     super.initState();
     _clock.scroll = widget.scroll;
+    Fx.stageSounds = true;
     _ticker = createTicker((e) {
-      final t = e.inMicroseconds / 1e6;
-      _board.update(widget.session, t, animate: !Fx.settings.reducedMotion);
+      final raw = e.inMicroseconds / 1e6;
+      final dt = raw - _lastRaw;
+      _lastRaw = raw;
+      if (_board.freeze > 0) {
+        // Hit-stop: while it lasts, the stage clock does not advance.
+        _board.freeze -= dt;
+        _frozen += dt;
+      }
+      final t = raw - _frozen;
+      _board.update(widget.session, t,
+          animate: !Fx.settings.reducedMotion, weapon: widget.weapon);
       _now.value = t;
     })
       ..start();
@@ -253,6 +368,7 @@ class _DuelStageState extends State<_DuelStage> with SingleTickerProviderStateMi
 
   @override
   void dispose() {
+    Fx.stageSounds = false;
     _ticker.dispose();
     _now.dispose();
     _clock.dispose();

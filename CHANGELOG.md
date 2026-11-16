@@ -3,6 +3,15 @@
 VERSIONING RULE: every time anything is changed, bump `kVersion` in `lib/version.dart`
 (and `version:` in pubspec.yaml) and add an entry here. The version is shown on the title screen.
 
+## 0.5.0
+- Combat sound and feel. 11 new synthesized sound effects (tools/gen_audio.py): whoosh, thud, slash, gunshot, plasma,
+  crit, block, heal, death, charge, brace. They are played from the combat stage's animation timeline, so every
+  sound lands on its visual: swing whoosh at the wind-up's end, impact at the strike, gunshot with the muzzle flash,
+  plasma zap for the cutter, a clang when you block, a rising tone when an enemy charges, a death rumble.
+- Hit-stop: heavy and critical hits (yours and theirs) freeze the stage for ~70-90 ms.
+- Haptics on impacts (medium; heavy for crits, heavy attacks and kills; light for shots and heals).
+- The typewriter no longer plays hit/miss/hurt sounds during fights (the stage does), so nothing doubles.
+
 ## 0.4.2
 - Feral Straggler now faces the player in combat (its sheet art faces right, so it is flipped like the raider).
 - Lockpick and terminal minigames are back on the plain CRT screen (dark tube, scanlines, glow), matching the

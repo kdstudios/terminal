@@ -167,11 +167,11 @@ class TypewriterController extends ChangeNotifier {
       Fx.play(Sfx.growl);
     } else if (t.startsWith('> HAZARD') || t.startsWith('> YOU HAVE FALLEN')) {
       Fx.play(Sfx.alarm);
-    } else if (t.startsWith('DAMAGE DEALT')) {
+    } else if (!Fx.stageSounds && t.startsWith('DAMAGE DEALT')) {
       Fx.play(Sfx.hit);
-    } else if (t.startsWith('You miss')) {
+    } else if (!Fx.stageSounds && t.startsWith('You miss')) {
       Fx.play(Sfx.swing);
-    } else if (t.startsWith('DAMAGE RECEIVED')) {
+    } else if (!Fx.stageSounds && t.startsWith('DAMAGE RECEIVED')) {
       Fx.play(Sfx.hurt);
     }
   }
