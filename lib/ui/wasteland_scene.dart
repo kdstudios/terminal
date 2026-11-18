@@ -16,7 +16,7 @@ class SceneTheme {
   final List<String> detail; // small clutter on the ground line (also foreground)
   final String ridge; // distant ridge / treeline tile behind the far plain
   final bool mushroom; // the cloud hangs over the horizon
-  const SceneTheme({
+  SceneTheme({
     required this.ridge,
     required this.ground,
     required this.far,
@@ -27,7 +27,14 @@ class SceneTheme {
   });
 }
 
-const _clutter = ['world_a#rock_a', 'world_b#rock_b', 'world_a#plants_a'];
+// All scenery now comes from the 'scenery' atlas (tools/pack_scenery.py). Short names keep the
+// theme tables readable: _s('bld.block.tan') -> 'scenery#bld.block.tan'.
+String _s(String pool) => 'scenery#$pool';
+
+final _clutter = [
+  _s('rock.small'), _s('shrub'), _s('prop.tiny'), _s('rock.small'), _s('shrub'), _s('prop.tiny'),
+  _s('tumble'),
+];
 
 /// Floor strip geometry, in sheet pixels. The dweller and the props stand near
 /// the BOTTOM of the textured strip (kFeetDepth), like the artwork implies.
@@ -38,119 +45,113 @@ const double kFeetDepth = 36;
 const _cloudsFar = ['derived:sky.cloud0', 'derived:sky.cloud6', 'derived:sky.cloud5', 'derived:sky.cloud1'];
 const _cloudsNear = ['derived:sky.cloud2', 'derived:sky.cloud3', 'derived:sky.cloud4', 'derived:sky.cloud7'];
 
-const sceneThemes = <SceneTheme>[
-  // 0 DUSTY HIGHWAY
+final sceneThemes = <SceneTheme>[
+  // 0 DUSTY HIGHWAY: tan ruins, roadside signs, wrecks on the shoulder
   SceneTheme(
     ridge: 'derived:ridge.hills',
-    ground: ['world_a:ground.road2', 'world_a:ground.road', 'world_a:ground.dirt', 'world_a:ground.road2'],
+    ground: [_s('ground.road'), _s('ground.road'), _s('ground.dirt'), _s('ground.road')],
     far: [
-      'world_b#bld_b', 'world_a#bld_a', 'derived#bg_city', 'world_a:tree.dead1', 'derived#bg_city',
-      'world_b:radome', 'derived#bg_landmark', 'world_b#bld_b', 'derived#bg_city',
+      _s('bld.far.tan'), _s('bld.block.tan'), _s('bld.low.tan'), _s('bld.far.tan'), _s('tree.dead'),
+      _s('bld.block.tan'), _s('bld.landmark'), _s('bld.low.tan'), _s('bld.block.tan'),
     ],
     mid: [
-      'world_b:gasstation', 'world_b:motel', 'world_b:billboard', 'world_a#bld_a', 'derived#bg_city',
-      'world_b#bld_b', 'derived#bg_landmark', 'world_b:church', 'derived#bg_industry',
+      _s('bld.roadside'), _s('bld.block.tan'), _s('bld.low.tan'), _s('prop.landsign'),
+      _s('bld.landmark'), _s('bld.block.tan'), _s('bld.roadside'), _s('bld.spire'), _s('bld.low.tan'),
     ],
     near: [
-      'world_b#poles_b', 'world_b:car.rust', 'derived:sign.stoppost', 'world_b#crates_b',
-      'derived:sign.route66post', 'world_a:tree.dead1', 'world_a#fence_a', 'world_b#fence_b',
-      'world_a#crates_a', 'world_a:pole.a', 'world_a:pole.c',
+      _s('prop.pole'), _s('veh.any'), _s('prop.sign'), _s('prop.small'), _s('prop.fence'),
+      _s('tree.dead'), _s('prop.pole'), _s('veh.wreck'), _s('prop.small'), _s('prop.sign'),
     ],
     detail: _clutter,
   ),
-  // 1 RUSTED OUTSKIRTS
+  // 1 RUSTED OUTSKIRTS: industry, towers, crates and fences
   SceneTheme(
     ridge: 'derived:ridge.hills',
-    ground: ['world_a:ground.dirt', 'world_a:ground.dirt2', 'world_a:ground.grass'],
+    ground: [_s('ground.dirt'), _s('ground.rubble'), _s('ground.dirt'), _s('ground.grass')],
     far: [
-      'world_a#bld_a', 'derived#bg_industry', 'world_b#bld_b', 'derived#bg_city', 'world_b:watertower',
-      'derived#bg_industry', 'world_a:tree.dead2', 'world_a#bld_a',
+      _s('bld.block.tan'), _s('bld.far.tan'), _s('bld.low.tan'), _s('bld.landmark'), _s('tree.dead'),
+      _s('bld.block.tan'), _s('bld.far.tan'), _s('bld.low.tan'),
     ],
     mid: [
-      'world_b:watertower', 'derived#bg_industry', 'world_b:gasstation', 'world_a#bld_a', 'derived#bg_industry',
-      'world_b:watchtower', 'derived#bg_city', 'world_b#bld_b', 'world_b:radar', 'derived#bg_landmark',
+      _s('bld.landmark'), _s('bld.block.tan'), _s('bld.roadside'), _s('bld.low.tan'), _s('bld.spire'),
+      _s('bld.block.tan'), _s('prop.big'), _s('bld.landmark'), _s('bld.block.tan'), _s('bld.pole'),
     ],
     near: [
-      'world_b#crates_b', 'world_a#crates_a', 'world_b#poles_b', 'world_a:sign.gas',
-      'world_b:car.rust', 'world_a:trafficlight', 'world_b#fence_b', 'world_a#fence_a',
-      'world_b:barrel.0', 'world_a:sign.welcome',
+      _s('prop.small'), _s('prop.fence'), _s('veh.any'), _s('prop.pole'), _s('prop.sign'),
+      _s('prop.small'), _s('prop.fence'), _s('tree.dead'), _s('rock.big'), _s('prop.big'),
     ],
     detail: _clutter,
   ),
-  // 2 GLASSED BASIN (the concept art)
+  // 2 GLASSED BASIN: bleached desert under the cloud
   SceneTheme(
     ridge: 'derived:ridge.mountains',
-    ground: ['world_a:ground.dirt2', 'world_a:ground.dirt', 'world_a:ground.dirt2'],
+    ground: [_s('ground.dirt'), _s('ground.rubble'), _s('ground.dirt')],
     far: [
-      'world_b#bld_b', 'derived#bg_city', 'derived#bg_desert', 'world_a#bld_a', 'world_a:tree.dead1',
-      'derived#bg_city', 'derived#bg_desert', 'world_a:tree.dead2', 'world_b#bld_b',
+      _s('bld.far.tan'), _s('tree.dead'), _s('bld.block.tan'), _s('tree.cactus'), _s('bld.spire'),
+      _s('bld.low.tan'), _s('tree.dead'), _s('bld.far.tan'), _s('tree.cactus'),
     ],
     mid: [
-      'world_a#bld_a', 'derived#bg_city', 'world_b#bld_b', 'derived#bg_desert', 'world_b:radar',
-      'derived#bg_landmark', 'world_a:tree.dead1', 'derived#bg_city', 'world_a#bld_a',
+      _s('bld.block.tan'), _s('bld.landmark'), _s('tree.cactus'), _s('bld.low.tan'), _s('bunker'),
+      _s('tree.dead'), _s('bld.block.tan'), _s('bld.spire'), _s('tree.cactus'),
     ],
     near: [
-      'derived:sign.radpost', 'world_a:tree.dead1', 'world_a#crates_a', 'world_a:tree.dead2',
-      'world_b#poles_b', 'world_a:pole.b', 'world_a#fence_a', 'world_b#crates_b',
-      'world_b:barrel.0', 'world_b:car.rust',
+      _s('rock.big'), _s('tree.dead'), _s('tree.cactus'), _s('prop.small'), _s('veh.wreck'),
+      _s('prop.sign'), _s('bones'), _s('rock.big'), _s('tree.cactus'), _s('prop.pole'),
     ],
     detail: _clutter,
     mushroom: true,
   ),
-  // 3 DROWNED SUBURBS: forest and ruins together
+  // 3 DROWNED SUBURBS: overgrown houses and ruins in forest
   SceneTheme(
     ridge: 'derived:ridge.treeline',
-    ground: ['world_a:ground.grass', 'world_a:ground.dirt', 'world_a:ground.grass'],
+    ground: [_s('ground.grass'), _s('ground.dirt'), _s('ground.grass'), _s('ground.road')],
     far: [
-      'derived#bg_forest', 'world_a:tree.pine1', 'derived#bg_forest', 'world_a:tree.pine2', 'world_a:tree.green',
-      'derived#bg_city', 'world_a:tree.autumn', 'derived#bg_forest', 'world_b:church', 'world_b:house',
-      'world_a#bld_a', 'derived#bg_forest', 'world_a:tree.green', 'world_a:tree.pine2',
+      _s('bld.far.green'), _s('tree.pine'), _s('tree.leaf'), _s('bld.block.green'), _s('tree.leaf'),
+      _s('tree.pine'), _s('bld.low.green'), _s('tree.leaf'), _s('bld.far.green'), _s('tree.pine'),
     ],
     mid: [
-      'derived#bg_forest', 'world_b:house', 'world_a:tree.pine1', 'derived#bg_forest', 'world_b:church',
-      'world_a:tree.autumn', 'derived#bg_city', 'world_b:motel', 'derived#bg_forest', 'world_a:tree.pine2',
-      'world_a#bld_a', 'world_a:tree.green',
+      _s('house'), _s('tree.leaf'), _s('house'), _s('bld.block.green'), _s('tree.pine'),
+      _s('tree.leaf'), _s('bld.roadside'), _s('bld.low.green'), _s('house'), _s('tree.leaf'),
     ],
     near: [
-      'world_a:tree.green', 'world_a:tree.autumn', 'world_a:tree.pine2', 'world_a:sign.food',
-      'world_a#fence_a', 'world_b#fence_b', 'world_b:car.rust', 'world_b#crates_b',
-      'world_a:pole.c', 'world_a:tree.green',
+      _s('tree.leaf'), _s('tree.pine'), _s('shrub'), _s('prop.fence'), _s('veh.any'),
+      _s('prop.pole'), _s('prop.small'), _s('tree.leaf'), _s('prop.sign'), _s('shrub'),
     ],
     detail: _clutter,
   ),
-  // 4 IRON GRAVEYARD
+  // 4 IRON GRAVEYARD: wrecks, bunkers, radar and rust
   SceneTheme(
     ridge: 'derived:ridge.hills',
-    ground: ['world_a:ground.dirt', 'world_a:ground.dirt2', 'world_a:ground.dirt'],
+    ground: [_s('ground.rubble'), _s('ground.dirt'), _s('ground.rubble'), _s('ground.road')],
     far: [
-      'world_b:radar', 'derived#bg_industry', 'world_b:radome', 'derived#bg_landmark', 'world_b#bld_b',
-      'derived#bg_industry', 'world_a#bld_a', 'world_b:watchtower', 'derived#bg_city',
+      _s('bld.far.tan'), _s('bld.spire'), _s('bld.block.tan'), _s('bld.landmark'), _s('bld.pole'),
+      _s('bld.low.tan'), _s('bld.far.tan'), _s('bld.block.tan'),
     ],
     mid: [
-      'world_b:plane.wreck', 'derived#bg_industry', 'world_b:watchtower', 'derived#bg_landmark', 'world_b:radar',
-      'derived#bg_industry', 'world_a#bld_a', 'world_b:car.rust', 'derived#bg_desert',
+      _s('veh.crashed'), _s('bld.block.tan'), _s('bunker'), _s('bld.landmark'), _s('bld.low.tan'),
+      _s('bld.spire'), _s('veh.wreck'), _s('bld.block.tan'), _s('prop.big'),
     ],
     near: [
-      'world_b:car.rust', 'world_b:tent', 'world_b#crates_b', 'world_a#crates_a',
-      'world_a:tree.dead2', 'world_b:barrel.0', 'world_b#fence_b', 'world_b#poles_b',
+      _s('veh.wreck'), _s('veh.any'), _s('prop.big'), _s('prop.small'), _s('prop.fence'),
+      _s('rock.big'), _s('prop.pole'), _s('prop.tiny'), _s('veh.truck'), _s('tree.dead'),
     ],
     detail: _clutter,
   ),
-  // 5 ASHEN HEIGHTS: pines and towers
+  // 5 ASHEN HEIGHTS: pines, mossy towers, broken rock
   SceneTheme(
     ridge: 'derived:ridge.mountains',
-    ground: ['world_a:ground.dirt2', 'world_a:ground.grass', 'world_a:ground.dirt'],
+    ground: [_s('ground.rubble'), _s('ground.grass'), _s('ground.dirt'), _s('ground.rubble')],
     far: [
-      'world_b#bld_b', 'derived#bg_desert', 'world_a:tree.pine1', 'derived#bg_city', 'world_a#bld_a',
-      'derived#bg_forest', 'world_a:tree.pine2', 'derived#bg_desert', 'world_a:tree.dead1',
+      _s('bld.far.green'), _s('tree.pine'), _s('bld.block.green'), _s('tree.dead'), _s('tree.pine'),
+      _s('bld.far.green'), _s('tree.leaf'), _s('bld.low.green'), _s('tree.pine'),
     ],
     mid: [
-      'world_a#bld_a', 'derived#bg_forest', 'world_a:tree.pine1', 'derived#bg_city', 'world_b#bld_b',
-      'derived#bg_desert', 'world_b:radome', 'derived#bg_forest', 'world_a:tree.pine2', 'derived#bg_landmark',
+      _s('bld.block.green'), _s('tree.pine'), _s('bld.landmark'), _s('tree.pine'), _s('bld.low.green'),
+      _s('tree.dead'), _s('bld.spire'), _s('tree.leaf'), _s('bld.block.green'), _s('bunker'),
     ],
     near: [
-      'world_a:tree.pine1', 'world_a:tree.pine2', 'world_a:tree.dead1', 'world_a:rock.big',
-      'world_b#poles_b', 'world_a#crates_a', 'world_a:tree.pine1', 'world_a:tree.dead2',
+      _s('tree.pine'), _s('tree.dead'), _s('rock.big'), _s('tree.pine'), _s('prop.pole'),
+      _s('prop.small'), _s('shrub'), _s('rock.big'), _s('tree.leaf'), _s('prop.fence'),
     ],
     detail: _clutter,
   ),
@@ -254,19 +255,36 @@ class WastelandScenePainter extends CustomPainter {
     ..colorFilter = Crt.phosphor(T.green, keep: keep, gain: gain)
     ..color = Colors.white.withValues(alpha: opacity);
 
-  /// Props that stand on a post look too big at building scale.
+  /// Some families look wrong at building scale (a lamp post as tall as a block of flats), so
+  /// each pool gets a size multiplier. Keyed by the pool name after '#'.
+  static const Map<String, double> _poolScale = {
+    'prop.pole': 0.6,
+    'prop.sign': 0.75,
+    'prop.landsign': 0.6,
+    'prop.big': 0.8,
+    'tree.leaf': 0.95,
+    'tree.pine': 0.95,
+    'tree.dead': 0.95,
+    'tree.cactus': 0.95,
+    'tree.any': 0.95,
+    'veh.any': 0.85,
+    'veh.bus': 0.85,
+    'veh.car': 0.85,
+    'veh.truck': 0.85,
+    'veh.wreck': 0.85,
+    'veh.crashed': 0.85,
+    'house': 0.9,
+    'bunker': 0.9,
+  };
+
   static double _refScale(String ref) {
-    if (ref.startsWith('derived:sign')) return 0.55;
-    if (ref.contains(':sign.')) return 0.6;
-    if (ref.contains('tree.')) return 0.95;
-    if (ref.contains('car.') || ref.contains('tent') || ref.contains('watchtower')) return 0.8;
-    if (ref.contains('barrel') || ref.contains('trafficlight')) return 0.7;
-    return 1.0;
+    final i = ref.indexOf('#');
+    return (i < 0 ? null : _poolScale[ref.substring(i + 1)]) ?? 1.0;
   }
 
-  /// Mirroring a sign or billboard would mirror its lettering.
-  static bool _flippable(String ref) =>
-      ref.contains('#') || ref.contains('tree.') || ref.contains('rock') || ref.contains('ground');
+  /// Chance that a sprite is mirrored. Sprites with lettering are marked `flip: false` in the
+  /// atlas (tools/pack_scenery.py) and are never mirrored, whatever this says.
+  static const double kFlipChance = 0.5;
 
   static int _hash(int a, int b, int c) {
     int h = (a * 73856093) ^ (b * 19349663) ^ (c * 83492791);
@@ -274,13 +292,15 @@ class WastelandScenePainter extends CustomPainter {
     return h;
   }
 
-  List<_Placed> _chunk(int layer, int idx, List<String> refs, int count, {double gapChance = 0.15}) {
+  List<_Placed> _chunk(int layer, int idx, List<String> refs, int count,
+      {double gapChance = 0.15, double scale = 1.0, double overlap = 1.0}) {
     final key = '$layer:$idx:$region';
     final hit = _cache[key];
     if (hit != null) return hit;
     if (_cache.length > 500) _cache.clear();
     final rng = Random(_hash(layer, idx, region));
     final out = <_Placed>[];
+    double prevRight = -1e9; // right edge of the last placed sprite, in sheet px across the chunk
     for (int k = 0; k < count; k++) {
       if (rng.nextDouble() < gapChance) continue; // breathing room
       final n = idx * count + k; // global running number on this layer
@@ -288,13 +308,16 @@ class WastelandScenePainter extends CustomPainter {
       final ref = refs[((n * 0.6180339887498949) % 1.0 * refs.length).floor() % refs.length];
       final sp = Atlas.resolveAt(ref, n + layer * 31);
       if (sp == null) continue;
-      out.add(_Placed(
-        sp,
-        (k + 0.1 + rng.nextDouble() * 0.8) / count,
-        _flippable(ref) && rng.nextBool(),
-        _refScale(ref) * (0.9 + rng.nextDouble() * 0.2),
-        rng.nextDouble(),
-      ));
+      final u = (k + 0.1 + rng.nextDouble() * 0.8) / count;
+      final flipRoll = rng.nextDouble(); // always drawn, so edits elsewhere never reshuffle flips
+      final mul = _refScale(ref) * (0.9 + rng.nextDouble() * 0.2);
+      final dy = rng.nextDouble();
+      // Keep neighbours from stacking on top of each other (layers choose how strict).
+      final w = sp.w * scale * mul;
+      final left = u * 520 - sp.ax * scale * mul;
+      if (left < prevRight - w * overlap) continue;
+      prevRight = left + w;
+      out.add(_Placed(sp, u, sp.flippable && flipRoll < kFlipChance, mul, dy));
     }
     return _cache[key] = out;
   }
@@ -309,13 +332,15 @@ class WastelandScenePainter extends CustomPainter {
       double gapChance = 0.15,
       double maxH = 0.7, // tallest a sprite may get, as a fraction of the panel
       double yJitter = 0,
+      double overlap = 1.0, // 1 = sprites may fully overlap, 0 = never overlap
       double extraOff = 0}) {
     final chunkW = 520 * unit;
     final off = scrollDp * speed + extraOff;
     final first = (off / chunkW).floor() - 1;
     final last = ((off + size.width) / chunkW).ceil() + 1;
     for (int idx = first; idx <= last; idx++) {
-      for (final p in _chunk(layer, idx, refs, count, gapChance: gapChance)) {
+      for (final p in _chunk(layer, idx, refs, count,
+          gapChance: gapChance, scale: scale, overlap: overlap)) {
         final x = idx * chunkW + p.u * chunkW - off;
         final s = min(unit * scale * p.scaleMul, maxH * size.height / p.sp.h);
         if (x + p.sp.w * s < -20 || x - p.sp.w * s > size.width + 20) continue;
@@ -416,7 +441,7 @@ class WastelandScenePainter extends CustomPainter {
     );
     _layer(canvas, size, scrollDp, 1, th.far,
         speed: 0.10, scale: 0.85, paint: _paint(0.0, 0.42), footY: farY + h * 0.004,
-        unit: unit, count: 8, gapChance: 0.08, maxH: 0.6);
+        unit: unit, count: 8, gapChance: 0.08, maxH: 0.6, overlap: 0.6);
 
     // Atmospheric haze between far and mid layers.
     final hazeRect = Rect.fromLTWH(0, midY - h * 0.5, w, h * 0.5);
@@ -442,7 +467,7 @@ class WastelandScenePainter extends CustomPainter {
     );
     _layer(canvas, size, scrollDp, 2, th.mid,
         speed: 0.40, scale: 1.1, paint: _paint(0.0, 0.72), footY: midY + h * 0.004,
-        unit: unit, count: 5, gapChance: 0.12, maxH: 0.68);
+        unit: unit, count: 5, gapChance: 0.12, maxH: 0.68, overlap: 0.5);
 
     // Near floor: dark undersoil, then the patchwork surface.
     canvas.drawRect(Rect.fromLTWH(0, groundY, w, h - groundY), Paint()..color = tone(0.05));
@@ -451,10 +476,10 @@ class WastelandScenePainter extends CustomPainter {
     // Ground clutter and roadside props stand at the same depth as the dweller.
     _layer(canvas, size, scrollDp, 4, th.detail,
         speed: 1.0, scale: 0.8, paint: _paint(0.0, 0.9), footY: groundY + (kFeetDepth - 5) * unit,
-        unit: unit, count: 7, gapChance: 0.3);
+        unit: unit, count: 7, gapChance: 0.3, overlap: 0.3);
     _layer(canvas, size, scrollDp, 3, th.near,
         speed: 1.0, scale: 1.0, paint: _paint(0.0, 1.0), footY: groundY + (kFeetDepth - 2) * unit,
-        unit: unit, count: 6, gapChance: 0.25);
+        unit: unit, count: 6, gapChance: 0.2, maxH: 0.55, overlap: 0.15);
 
     // The dweller: a rig driven by the clock's gait phase.
     if (drawDweller) {

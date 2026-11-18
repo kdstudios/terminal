@@ -3,6 +3,20 @@
 VERSIONING RULE: every time anything is changed, bump `kVersion` in `lib/version.dart`
 (and `version:` in pubspec.yaml) and add an entry here. The version is shown on the title screen.
 
+## 0.6.0
+- EXPLORATION SCENERY OVERHAUL. All scenery (skyline, roadside props, ground, clutter) now comes from the new categorised
+  sprite folders, packed into one atlas `assets/atlas/scenery.png/json` by `tools/pack_scenery.py` (564 sprites: buildings
+  split tan / mossy-green and by kind - blocks, low ruins, spires, landmarks, roadside; trees; rocks; props; vehicles;
+  suburban houses; bunkers; ground strips). The old world_a / world_b / derived atlases stay: the dweller rig, combat troopers,
+  clouds, ridges and the minigames still use them and are untouched.
+- RANDOM FLIP: every scenery sprite has a 50% chance (`WastelandScenePainter.kFlipChance`) of being mirrored. The choice is
+  seeded per chunk, so it is stable on every pass. Sprites with lettering (signs, billboards, diner / gas / motel) are marked
+  `flip: false` in the atlas and are never mirrored.
+- Neighbouring sprites no longer pile on top of each other (per-layer overlap limit); region themes were rewritten around the
+  new pools (e.g. Suburbs = houses + forest, Graveyard = bunkers + wrecks, Basin = cacti, bones and bleached ruins).
+- The title screen and combat backdrops use the same scene painter, so they pick up the new scenery too.
+- scenery.png is stored as a 256-colour PNG (~2 MB instead of ~10 MB) to keep the web build light.
+
 ## 0.5.1
 - BRIGHTNESS: the status bar and the combat action box were darker than the rest because the CRT vignette was sized by
   the panel's SHORTEST side (so a short wide bar or a tall narrow strip sat in full darkness). The vignette now scales to

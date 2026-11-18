@@ -13,7 +13,9 @@ class AtlasSprite {
   final ui.Image image;
   final Rect src;
   final double ax; // foot anchor x, in source pixels from the sprite's left edge
-  const AtlasSprite(this.image, this.src, this.ax);
+  /// False for sprites with lettering (signs, billboards): the scene never mirrors them.
+  final bool flippable;
+  const AtlasSprite(this.image, this.src, this.ax, [this.flippable = true]);
 
   double get w => src.width;
   double get h => src.height;
@@ -24,6 +26,7 @@ class AtlasSprite {
         image,
         Rect.fromLTRB(src.left + left, src.top + top, src.right - right, src.bottom - bottom),
         ax - left,
+        flippable,
       );
 
   /// Draw with the foot anchor (bottom edge, [ax]) at [foot].
@@ -75,7 +78,7 @@ class _Sheet {
 ///   Atlas.pool('world_a', 'bld_a')            a pool for procedural scenery
 ///   Atlas.resolve('world_b#bld_b', rng)       "sheet:name" or "sheet#pool" strings
 class Atlas {
-  static const sheetNames = ['world_a', 'world_b', 'minigame', 'derived'];
+  static const sheetNames = ['world_a', 'world_b', 'minigame', 'derived', 'scenery'];
   static final Map<String, _Sheet> _sheets = {};
 
   static bool get ready => _sheets.containsKey('world_a') && _sheets.containsKey('world_b');
@@ -96,6 +99,7 @@ class Atlas {
               Rect.fromLTWH((s['x'] as num).toDouble(), (s['y'] as num).toDouble(),
                   (s['w'] as num).toDouble(), (s['h'] as num).toDouble()),
               ((s['ax'] ?? (s['w'] as num) / 2) as num).toDouble(),
+              (s['flip'] ?? true) as bool,
             ),
         ];
         Map<String, List<int>> lists(String k) => {

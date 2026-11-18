@@ -58,3 +58,10 @@ Every change bumps `kVersion` (lib/version.dart) + pubspec `version:` and adds a
 Edit the banks in `tools/text/explore_banks.py` and `tools/text/combat_banks.py`, then run
 `python3 tools/gen_flavor.py --samples` (writes lib/game/flavor_gen.dart and prints samples + how many distinct
 lines the templates can produce).  {slot} = pick from a bank, {slot^} = capitalise, {n} = the enemy's name.
+
+### Scenery atlas (0.6.0)
+    python3 tools/pack_scenery.py --src <path to the Sprites folder> [--preview]
+Packs Buildings / Trees / Rocks / Props / Terrain / Vehicles / Suburban / Encounter into `assets/atlas/scenery.*`. Sorting into
+pools (`bld.block.tan`, `tree.pine`, `prop.sign`, `ground.road`, ...) is done by the lists at the top of the script; `--preview`
+writes `work/scenery_pools.png` so you can check every pool. Themes in `wasteland_scene.dart` reference pools as `_s('pool')`.
+Player, NPC and Minigame folders are not packed. Lettered sprites are never mirrored (`flip: false`).
