@@ -267,7 +267,7 @@ class _Board {
         _instant(f, weapon);
         continue;
       }
-      final start = max(now, queueEnd);
+      final start = max(now + f.delay, queueEnd);
       final d = _dur(f.kind);
       anims.add(_Anim(f, start, d));
       queueEnd = start + d + 0.08;

@@ -27,6 +27,7 @@ class TypewriterController extends ChangeNotifier {
   int chars = 0;
   double _carry = 0;
   int _holdMs = 0;
+  int _preMs = 0; // wait before typing starts (animation sync, see LogLine.impactMs)
   bool _effectRun = false;
   Timer? _timer;
   DateTime _idleSince = DateTime.now();
@@ -124,6 +125,11 @@ class TypewriterController extends ChangeNotifier {
     void reveal(LogLine l) {
       revealed.add(l); // add first so lines made by the effect stay in order
       if (l.kind == LogKind.loot || l.text.startsWith('DAMAGE')) soundLine = l;
+      final st = l.onStart;
+      if (st != null) {
+        l.onStart = null;
+        st(0);
+      }
       _run(l);
     }
 
@@ -137,6 +143,7 @@ class TypewriterController extends ChangeNotifier {
     }
     chars = 0;
     _holdMs = 0;
+    _preMs = 0;
     _effectRun = false;
     _trim();
     _idleSince = DateTime.now();
@@ -192,6 +199,12 @@ class TypewriterController extends ChangeNotifier {
     }
   }
 
+  double _boostNow() {
+    final backlog = _queue.length;
+    final base = backlog > 14 ? 6.0 : backlog > 6 ? 3.0 : backlog > 3 ? 1.8 : 1.0;
+    return state.mode == GameMode.combat ? base * 1.6 : base;
+  }
+
   void _tick() {
     if (current == null) {
       if (_queue.isEmpty) {
@@ -205,7 +218,23 @@ class TypewriterController extends ChangeNotifier {
       chars = 0;
       _carry = 0;
       _holdMs = 0;
+      _preMs = 0;
       _effectRun = false;
+      // Combat animation sync: tell the stage when to start, so its impact lands
+      // exactly as this line finishes typing (the number appears WITH the hit).
+      final st = current!.onStart;
+      if (st != null) {
+        current!.onStart = null;
+        final sp0 = state.textSpeed;
+        if (sp0 < 3 && !_minigame) {
+          final typeMs = current!.text.length / (_cps[sp0] * _boostNow()) * 1000;
+          final impact = current!.impactMs.toDouble();
+          _preMs = max(0.0, impact - typeMs).round();
+          st(max(0.0, typeMs - impact) / 1000);
+        } else {
+          st(0);
+        }
+      }
       notifyListeners();
     }
     final speed = state.textSpeed;
@@ -214,9 +243,11 @@ class TypewriterController extends ChangeNotifier {
       return;
     }
     final cur = current!;
-    final backlog = _queue.length;
-    final base = backlog > 14 ? 6.0 : backlog > 6 ? 3.0 : backlog > 3 ? 1.8 : 1.0;
-    final boost = state.mode == GameMode.combat ? base * 1.6 : base; // fights read faster
+    final boost = _boostNow(); // fights read faster, long backlogs faster still
+    if (_preMs > 0) {
+      _preMs -= _tickMs; // holding the line back until the animation catches up
+      return;
+    }
 
     if (chars < cur.text.length) {
       _carry += _cps[speed] * boost * _tickMs / 1000;

@@ -16,7 +16,27 @@ class CombatFx {
   final int amount; // damage / healing
   final bool crit; // player critical, or an enemy's charged attack
   final bool blocked; // enemyHit while the player was defending
-  const CombatFx(this.kind, {this.amount = 0, this.crit = false, this.blocked = false});
+  final double delay; // seconds the stage waits before playing it (set by the log's typing)
+  const CombatFx(this.kind,
+      {this.amount = 0, this.crit = false, this.blocked = false, this.delay = 0});
+
+  CombatFx delayed(double d) =>
+      CombatFx(kind, amount: amount, crit: crit, blocked: blocked, delay: d);
+
+  /// Seconds from the start of the animation to its IMPACT (when the number shows).
+  /// Mirrors the stage's timeline: shot 0.62s * .31, heavy 0.9s * .31, enemy hit 0.75s * .32.
+  static double impactSeconds(CombatFxKind k) {
+    switch (k) {
+      case CombatFxKind.shot:
+        return 0.19;
+      case CombatFxKind.heavy:
+        return 0.28;
+      case CombatFxKind.enemyHit:
+        return 0.24;
+      default:
+        return 0;
+    }
+  }
 }
 
 /// Data for one enemy kind. Behaviour comes from a few numbers:

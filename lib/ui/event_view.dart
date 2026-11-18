@@ -27,7 +27,7 @@ class EventView extends StatelessWidget {
           Text(
             s.finished ? 'ENCOUNTER RESOLVED' : 'AWAITING YOUR DECISION',
             textAlign: TextAlign.center,
-            style: T.mono(T.dim, size: 12),
+            style: T.mono(T.label, size: 12),
           ),
         ],
       ),

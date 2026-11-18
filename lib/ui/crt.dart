@@ -123,16 +123,24 @@ class _CrtPainter extends CustomPainter {
           colors: [tint.withValues(alpha: 0.06), Colors.transparent],
         ).createShader(rect),
     );
-    // Vignette: the tube is darker towards its curved edges.
+    // Vignette: the tube is a little darker towards its corners. The gradient is
+    // drawn on a unit square stretched to the panel, so a short wide bar or a tall
+    // narrow strip gets the same gentle falloff as a big panel (a plain radial
+    // gradient is sized by the SHORTEST side, which blacked out small panels).
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.scale(size.width / 2, size.height / 2);
+    const unit = Rect.fromLTRB(-1, -1, 1, 1);
     canvas.drawRect(
-      rect,
+      unit,
       Paint()
         ..shader = RadialGradient(
-          radius: 1.0,
-          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.42)],
-          stops: const [0.62, 1.0],
-        ).createShader(rect),
+          radius: 0.72,
+          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.34)],
+          stops: const [0.55, 1.0],
+        ).createShader(unit),
     );
+    canvas.restore();
     // Scanlines: one batched draw call.
     final pts = <Offset>[];
     for (double y = 1; y < size.height; y += 3) {

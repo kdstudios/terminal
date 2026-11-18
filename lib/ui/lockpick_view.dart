@@ -50,7 +50,7 @@ class LockpickView extends StatelessWidget {
                 style: T.mono(T.green, size: 13, bold: true)),
             Text('PICK HP: ${_hp(s.stress)}',
                 style: T.mono(s.stress > 0.6 ? T.red : T.green, size: 13)),
-            Text('DRAG LOCK: AIM  //  PULL LEVER: TURN', style: T.mono(T.dim, size: 10)),
+            Text('DRAG LOCK: AIM  //  PULL LEVER: TURN', style: T.mono(T.label, size: 10)),
           ],
         );
 
@@ -121,10 +121,10 @@ class LockpickView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('LOCKED CONTAINER DETECTED', style: T.mono(T.amber, bold: true)),
-              Text('LOCK: ${s.lockName}', style: T.mono(T.dim)),
-              Text('LOCKPICKS: ${state.lockpicks}', style: T.mono(T.dim)),
+              Text('LOCK: ${s.lockName}', style: T.mono(T.label)),
+              Text('LOCKPICKS: ${state.lockpicks}', style: T.mono(T.label)),
               Text('PICK HP: ${_hp(s.stress)}',
-                  style: T.mono(s.stress > 0.6 ? T.red : T.dim)),
+                  style: T.mono(s.stress > 0.6 ? T.red : T.label)),
               const SizedBox(height: 8),
               AtlasImage(
                 sheet: 'minigame',
@@ -210,7 +210,7 @@ class _LeverState extends State<_Lever> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: _handleW),
                       child: Text('◀ PULL LEVER TO TURN',
-                          style: T.mono(T.dim, size: 12)),
+                          style: T.mono(T.label, size: 12)),
                     ),
                   ),
                 // Handle.

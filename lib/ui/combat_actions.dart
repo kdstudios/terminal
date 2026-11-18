@@ -41,13 +41,13 @@ class CombatActions extends StatelessWidget {
   Widget _actions(CombatSession s, bool busy) {
     final off = busy || s.finished;
     VoidCallback? go(PlayerAction a) => off ? null : () => system.act(a);
-    Color c(Color x) => off ? T.dim : x;
+    Color c(Color x) => x; // disabled buttons dim themselves (see _Btn)
     final noStim = state.stimpacks <= 0 || off;
     final buttons = <Widget>[
       _Btn('ATTACK', c(T.green), go(PlayerAction.attack)),
       _Btn('HEAVY', c(T.amber), go(PlayerAction.heavy)),
       _Btn('DEFEND', c(T.green), go(PlayerAction.defend)),
-      _Btn('ITEM x${state.stimpacks}', noStim ? T.dim : T.loot,
+      _Btn('ITEM x${state.stimpacks}', T.loot,
           noStim ? null : () => system.act(PlayerAction.item)),
       _Btn('ESCAPE', c(T.amber), go(PlayerAction.escape)),
     ];
@@ -102,6 +102,9 @@ class _Btn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final on = onTap != null;
+    // Disabled = the same colour, a little dimmer (never a different dark grey).
+    final color = on ? this.color : Color.lerp(this.color, T.bg, 0.38)!;
     return InkWell(
       onTap: onTap == null
           ? null
@@ -114,7 +117,7 @@ class _Btn extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 30),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: onTap == null ? 0.0 : 0.07),
+          color: color.withValues(alpha: on ? 0.07 : 0.0),
           border: Border.all(color: color),
           borderRadius: BorderRadius.circular(6),
         ),

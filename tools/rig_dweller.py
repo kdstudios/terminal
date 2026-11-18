@@ -81,9 +81,14 @@ def build():
         legs.append({'P': P, 'K': K, 'A': A, 'th0': th0, 'sg0': sg0,
                      'thigh': f'dw.thigh{k}', 'shin': f'dw.shin{k}', 'foot': f'dw.foot{k}'})
 
+    hip_x = float(np.mean([l['P'][0] for l in legs]))      # body placement uses the ORIGINAL pelvis centre
+    # Walking symmetry: the two source legs differ (one is the trailing leg of a stride, with a
+    # different foot), which made the walk look like a limp. Both legs now use the FRONT leg's
+    # pieces and joints, so left and right are identical (the far one is just drawn dimmer).
+    legs = [dict(legs[1]), dict(legs[1])]
     meta = {
         'frame': [w, h],
-        'hip': [float(np.mean([l['P'][0] for l in legs])), float(HIP_Y)],
+        'hip': [hip_x, float(HIP_Y)],
         'sole_y': float(h),
         'body': 'dw.body',
         'body_melee': 'dw.body_melee',

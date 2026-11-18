@@ -62,13 +62,13 @@ class _MenuDialog extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 t == null ? 'AUTOSAVE: ON' : 'LAST SAVE: ${_time(t)}',
-                style: T.mono(T.dim, size: 12),
+                style: T.mono(T.label, size: 12),
               ),
               if (state.quests.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text('ACTIVE QUESTS', style: T.mono(T.green, size: 12, bold: true)),
                 for (final q in state.quests)
-                  Text(_quest(q), style: T.mono(q.ready ? T.loot : T.dim, size: 11)),
+                  Text(_quest(q), style: T.mono(q.ready ? T.loot : T.label, size: 11)),
               ],
               const SizedBox(height: 14),
               _MenuBtn('[SAVE NOW]', T.green, () async {

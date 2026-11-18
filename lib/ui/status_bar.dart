@@ -72,7 +72,7 @@ class StatusBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: T.mono(T.dim, size: 11)),
+                Text(label, style: T.mono(T.label, size: 11)),
                 Text(value, style: T.mono(c, size: 17, bold: true)),
               ],
             ),

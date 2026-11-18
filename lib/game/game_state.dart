@@ -20,7 +20,15 @@ class LogLine {
   final int? pauseMs; // extra reading pause after this line (suspense beats)
   final bool silent; // no sound when typed (used for recap lines)
   VoidCallback? effect; // runs when the line finishes typing (e.g. awards scrap)
-  LogLine(this.text, this.kind, {this.pauseMs, this.effect, this.silent = false});
+
+  /// Animation sync (combat). [onStart] runs when the line BEGINS; it is told how
+  /// many seconds the animation should wait so that its impact ([impactMs] after
+  /// its own start) lands exactly when this line finishes typing. If the line
+  /// would finish before the impact, the typewriter holds the line back instead.
+  final int impactMs;
+  void Function(double startDelaySec)? onStart;
+  LogLine(this.text, this.kind,
+      {this.pauseMs, this.effect, this.silent = false, this.impactMs = 0, this.onStart});
 }
 
 class GameState extends ChangeNotifier {
@@ -501,10 +509,13 @@ class GameState extends ChangeNotifier {
       int? pauseMs,
       VoidCallback? effect,
       bool silent = false,
-      bool recap = true}) {
+      bool recap = true,
+      int impactMs = 0,
+      void Function(double startDelaySec)? onStart}) {
     // recap: false keeps a line in the encounter log only (it is not replayed
     // into the narrative log when the encounter ends).
-    final line = LogLine(text, kind, pauseMs: pauseMs, effect: effect, silent: silent);
+    final line = LogLine(text, kind,
+        pauseMs: pauseMs, effect: effect, silent: silent, impactMs: impactMs, onStart: onStart);
     final toConsole = inEncounter;
     if (toConsole) {
       console.add(line);

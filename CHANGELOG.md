@@ -3,6 +3,17 @@
 VERSIONING RULE: every time anything is changed, bump `kVersion` in `lib/version.dart`
 (and `version:` in pubspec.yaml) and add an entry here. The version is shown on the title screen.
 
+## 0.5.1
+- BRIGHTNESS: the status bar and the combat action box were darker than the rest because the CRT vignette was sized by
+  the panel's SHORTEST side (so a short wide bar or a tall narrow strip sat in full darkness). The vignette now scales to
+  each panel's own shape. Secondary text uses a new brighter `T.label` colour everywhere (T.dim is now for borders only),
+  and disabled buttons dim their own colour instead of going dark grey.
+- WALK: both legs now use the same source leg (the old pair differed: one was a trailing leg with a different foot, which
+  read as a limp). Left and right are now identical, drawn with the far leg slightly dimmer.
+- COMBAT SYNC: the animation's impact now lands exactly as the damage number finishes typing in the encounter log.
+  Log lines can carry an `onStart` hook + `impactMs`; the typewriter tells the stage when to start (or holds the line back).
+  The DAMAGE DEALT / DAMAGE RECEIVED line now comes first, then the flavour text. Every animation is tied to its own line.
+
 ## 0.5.0
 - Combat sound and feel. 11 new synthesized sound effects (tools/gen_audio.py): whoosh, thud, slash, gunshot, plasma,
   crit, block, heal, death, charge, brace. They are played from the combat stage's animation timeline, so every

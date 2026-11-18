@@ -129,8 +129,8 @@ class HackingView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('SECURITY TERMINAL DETECTED', style: T.mono(T.amber, bold: true)),
-              Text('SECURITY LEVEL: ${s.level}', style: T.mono(T.dim)),
-              Text('TYPE: ${s.typeName}', style: T.mono(T.dim)),
+              Text('SECURITY LEVEL: ${s.level}', style: T.mono(T.label)),
+              Text('TYPE: ${s.typeName}', style: T.mono(T.label)),
               const SizedBox(height: 8),
               AtlasImage(
                 sheet: 'minigame',

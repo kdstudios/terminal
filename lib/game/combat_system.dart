@@ -115,8 +115,7 @@ class CombatSystem {
         break;
       case PlayerAction.defend:
         s.playerDefending = true;
-        s.fx.add(const CombatFx(CombatFxKind.defend));
-        state.addLog('> YOU BRACE FOR IMPACT.', LogKind.system, notify: false);
+        _logFx(s, '> YOU BRACE FOR IMPACT.', LogKind.system, const CombatFx(CombatFxKind.defend));
         state.addLog(CombatGen.defend(_rng), LogKind.narrative, notify: false);
         break;
       case PlayerAction.item:
@@ -162,6 +161,15 @@ class CombatSystem {
 
   // ---- player actions
 
+  /// Logs a line AND ties an animation to it: the animation starts when the line
+  /// starts typing, timed so its impact lands as the line finishes (see LogLine).
+  void _logFx(CombatSession s, String text, LogKind kind, CombatFx fx, {bool notify = false}) {
+    state.addLog(text, kind,
+        notify: notify,
+        impactMs: (CombatFx.impactSeconds(fx.kind) * 1000).round(),
+        onStart: (d) => s.fx.add(fx.delayed(d)));
+  }
+
   void _strike(CombatSession s, {required bool heavy}) {
     state.addLog(
       heavy
@@ -173,13 +181,13 @@ class CombatSystem {
     state.wear(state.weaponId, heavy ? 2 : 1); // swinging wears the weapon
     final hitBonus = min(0.2, 0.02 * state.skill('COMBAT')); // Combat skill
     if (_rng.nextDouble() > (heavy ? 0.7 : 0.9) + hitBonus) {
-      s.fx.add(CombatFx(CombatFxKind.miss, crit: heavy));
-      state.addLog(
+      _logFx(
+          s,
           _rng.nextDouble() < 0.85
               ? CombatGen.playerMiss(_rng, state.weaponId, enemyKind(s.type), s.template.short)
               : _playerMiss[_rng.nextInt(_playerMiss.length)],
           LogKind.warning,
-          notify: false);
+          CombatFx(CombatFxKind.miss, crit: heavy));
       return;
     }
     final w = state.weapon;
@@ -196,8 +204,14 @@ class CombatSystem {
           LogKind.narrative, notify: false);
     }
     s.hp = max(0, s.hp - dmg);
-    s.fx.add(CombatFx(heavy ? CombatFxKind.heavy : CombatFxKind.shot, amount: dmg, crit: crit));
     final hitPool = _weaponHits[state.weaponId] ?? _weaponHits['pipe']!;
+    // The number comes FIRST and is synced to the animation's impact; the flavour
+    // text follows while the player watches the result.
+    _logFx(s, 'DAMAGE DEALT: $dmg${crit ? ' (CRITICAL!)' : ''}', LogKind.system,
+        CombatFx(heavy ? CombatFxKind.heavy : CombatFxKind.shot, amount: dmg, crit: crit));
+    if (armor > 0) {
+      state.addLog('(ARMOR ABSORBED $armor)', LogKind.narrative, notify: false);
+    }
     state.addLog(
         _rng.nextDouble() < 0.82
             ? CombatGen.playerHit(_rng, state.weaponId, enemyKind(s.type))
@@ -210,20 +224,19 @@ class CombatSystem {
           LogKind.loot,
           notify: false);
     }
-    state.addLog('DAMAGE DEALT: $dmg${crit ? ' (CRITICAL!)' : ''}', LogKind.system,
-        notify: false);
-    if (armor > 0) {
-      state.addLog('(ARMOR ABSORBED $armor)', LogKind.narrative, notify: false);
-    }
   }
 
   void _useStim() {
     state.stimpacks--;
     final before = state.hp;
     state.hp = min(state.maxHp, state.hp + state.stimHeal);
-    state.combat?.fx.add(CombatFx(CombatFxKind.heal, amount: state.hp - before));
-    state.addLog('> YOU USE A STIMPACK. +${state.hp - before} HP', LogKind.loot,
-        notify: false);
+    final cs = state.combat;
+    if (cs != null) {
+      _logFx(cs, '> YOU USE A STIMPACK. +${state.hp - before} HP', LogKind.loot,
+          CombatFx(CombatFxKind.heal, amount: state.hp - before));
+    } else {
+      state.addLog('> YOU USE A STIMPACK. +${state.hp - before} HP', LogKind.loot, notify: false);
+    }
     state.gainSkill('SURVIVAL');
     state.addLog(
         _rng.nextDouble() < 0.7 ? CombatGen.stim(_rng) : _stimLines[_rng.nextInt(_stimLines.length)],
@@ -265,14 +278,13 @@ class CombatSystem {
       _hitPlayer(s, mult: 2.0, forceHit: true);
     } else if (t.chargeChance > 0 && _rng.nextDouble() < t.chargeChance) {
       s.charging = true;
-      s.fx.add(const CombatFx(CombatFxKind.enemyCharge));
-      _endTurnWithoutAttack(s,
-          'The ${t.short} ${t.chargeText}... BRACE!');
+      _endTurnWithoutAttack(s, 'The ${t.short} ${t.chargeText}... BRACE!',
+          fx: const CombatFx(CombatFxKind.enemyCharge));
       return;
     } else if (t.coverChance > 0 && _rng.nextDouble() < t.coverChance) {
       s.guarding = true;
-      s.fx.add(const CombatFx(CombatFxKind.enemyCover));
-      _endTurnWithoutAttack(s, 'The ${t.short} ducks behind cover!');
+      _endTurnWithoutAttack(s, 'The ${t.short} ducks behind cover!',
+          fx: const CombatFx(CombatFxKind.enemyCover));
       return;
     } else {
       for (int i = 0; i < t.strikes; i++) {
@@ -294,10 +306,14 @@ class CombatSystem {
     state.addLog('> YOUR TURN.', LogKind.system);
   }
 
-  void _endTurnWithoutAttack(CombatSession s, String text) {
+  void _endTurnWithoutAttack(CombatSession s, String text, {CombatFx? fx}) {
     s.playerDefending = false;
     s.turn++;
-    state.addLog(text, LogKind.warning, notify: false);
+    if (fx != null) {
+      _logFx(s, text, LogKind.warning, fx);
+    } else {
+      state.addLog(text, LogKind.warning, notify: false);
+    }
     // Now and then the wasteland interrupts with something absurd.
     if (_rng.nextDouble() < 0.16) {
       state.addLog(CombatGen.quip(_rng), LogKind.narrative, notify: false);
@@ -310,37 +326,38 @@ class CombatSystem {
     var dmg = ((s.atkMin + _rng.nextInt(s.atkMax - s.atkMin + 1)) * mult).round();
     final hitChance = max(0.4, t.hitChance - state.evadeBonus);
     if (!forceHit && _rng.nextDouble() >= hitChance) {
-      s.fx.add(const CombatFx(CombatFxKind.enemyMiss));
-      state.addLog(
+      _logFx(
+          s,
           _rng.nextDouble() < 0.75
               ? CombatGen.enemyMiss(_rng, enemyKind(s.type), t.short)
               : _enemyMiss[_rng.nextInt(_enemyMiss.length)].replaceAll('{n}', t.short),
           LogKind.system,
-          notify: false);
+          const CombatFx(CombatFxKind.enemyMiss));
       return;
     }
-    if (s.playerDefending) {
-      dmg = (dmg * 0.5).round();
-      state.addLog('You absorb the worst of it.', LogKind.narrative, notify: false);
-    }
+    final blocked = s.playerDefending;
+    if (blocked) dmg = (dmg * 0.5).round();
     final armor = state.armorValue;
     dmg = max(1, dmg - armor);
+    state.hp = max(0, state.hp - dmg);
+    final worn = state.armorId;
+    if (worn != null) state.wear(worn, 1); // every hit wears your armor
+    // The number comes FIRST, synced to the animation's impact; then the details.
+    _logFx(s, 'DAMAGE RECEIVED: $dmg', LogKind.danger,
+        CombatFx(CombatFxKind.enemyHit, amount: dmg, crit: mult >= 2.0, blocked: blocked));
+    if (blocked) {
+      state.addLog('You absorb the worst of it.', LogKind.narrative, notify: false);
+    }
     if (armor > 0) {
       state.addLog('(YOUR ARMOR ABSORBED $armor)', LogKind.narrative, notify: false);
     }
-    state.hp = max(0, state.hp - dmg);
-    s.fx.add(CombatFx(CombatFxKind.enemyHit,
-        amount: dmg, crit: mult >= 2.0, blocked: s.playerDefending));
-    final worn = state.armorId;
-    if (worn != null) state.wear(worn, 1); // every hit wears your armor
     state.addLog(
         t.hitLines.isEmpty || _rng.nextDouble() < 0.55
             ? CombatGen.enemyHit(_rng, enemyKind(s.type), t.short)
             : t.hitLines[_rng.nextInt(t.hitLines.length)],
         LogKind.danger,
         notify: false);
-    state.addLog('DAMAGE RECEIVED: $dmg', LogKind.danger, notify: false);
-    Fx.medium();
+    if (!Fx.stageSounds) Fx.medium(); // with the stage, haptics are played at the impact
   }
 
   // ---- endings

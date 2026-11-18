@@ -61,6 +61,11 @@ class T {
   static Color get loot => current.loot;
   static Color get thought => current.thought;
 
+  /// Secondary text (labels, hints): clearly a step below the main colour but
+  /// bright enough to read as part of the same screen. Use this for TEXT; T.dim is
+  /// for borders and rules.
+  static Color get label => Color.lerp(dim, green, 0.55)!;
+
   /// Drop a condensed techno TTF into assets/fonts, declare it in pubspec.yaml and
   /// set this to its family name to match the concept's lettering.
   static const String fontFamily = 'monospace';

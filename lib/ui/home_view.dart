@@ -148,7 +148,7 @@ class _HomeViewState extends State<HomeView> {
         style: T.mono(T.loot, size: 12, bold: true),
       ),
       const SizedBox(height: 4),
-      Text('REPAIR COST -$saving%', style: T.mono(T.dim, size: 11)),
+      Text('REPAIR COST -$saving%', style: T.mono(T.label, size: 11)),
       const SizedBox(height: 8),
       _menuBtn('[CRAFT]', T.green, () => _go('craft')),
       _menuBtn('[REPAIR]', T.green, () => _go('repair')),
@@ -214,7 +214,7 @@ class _HomeViewState extends State<HomeView> {
           Text('${g.name}${equipped ? '  (EQUIPPED)' : ''}',
               style: T.mono(T.green, size: 13, bold: true)),
           Text('CONDITION ${_durBar(d)} $d/100',
-              style: T.mono(d <= 20 ? T.red : T.dim, size: 11)),
+              style: T.mono(d <= 20 ? T.red : T.label, size: 11)),
           const SizedBox(height: 6),
           Row(children: [
             Expanded(
@@ -255,7 +255,7 @@ class _HomeViewState extends State<HomeView> {
         padding: const EdgeInsets.only(bottom: 6),
         child: Text('ACTIVE ${s.quests.length}/3', style: T.mono(T.loot, size: 12, bold: true)),
       ),
-      if (s.quests.isEmpty) Text('NO ACTIVE QUESTS.', style: T.mono(T.dim, size: 12)),
+      if (s.quests.isEmpty) Text('NO ACTIVE QUESTS.', style: T.mono(T.label, size: 12)),
       for (final q in s.quests)
         _row(
           questById(q.id).title,
@@ -266,16 +266,16 @@ class _HomeViewState extends State<HomeView> {
         ),
       Padding(
         padding: const EdgeInsets.only(top: 6, bottom: 6),
-        child: Text('AVAILABLE', style: T.mono(T.dim, size: 12)),
+        child: Text('AVAILABLE', style: T.mono(T.label, size: 12)),
       ),
       if (available.isEmpty)
-        Text('NOTHING NEW. CHECK BACK AS YOU LEVEL UP.', style: T.mono(T.dim, size: 12)),
+        Text('NOTHING NEW. CHECK BACK AS YOU LEVEL UP.', style: T.mono(T.label, size: 12)),
       for (final d in available)
         _row(d.title, '${d.desc}  REWARD: ${_reward(d)}', 'ACCEPT', s.quests.length < 3,
             () => sys.acceptQuest(d.id)),
       Padding(
         padding: const EdgeInsets.only(top: 6, bottom: 6),
-        child: Text('CONTRACTS  (REPEATABLE)', style: T.mono(T.dim, size: 12)),
+        child: Text('CONTRACTS  (REPEATABLE)', style: T.mono(T.label, size: 12)),
       ),
       for (final id in s.contracts)
         _row(
@@ -348,7 +348,7 @@ class _HomeViewState extends State<HomeView> {
         ),
       Padding(
         padding: const EdgeInsets.only(top: 6, bottom: 6),
-        child: Text('SKILLS  (IMPROVE BY USE)', style: T.mono(T.dim, size: 12)),
+        child: Text('SKILLS  (IMPROVE BY USE)', style: T.mono(T.label, size: 12)),
       ),
       for (final k in skillKeys)
         _info(
@@ -371,7 +371,7 @@ class _HomeViewState extends State<HomeView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: T.mono(T.green, size: 13, bold: true)),
-            Text(sub, style: T.mono(T.dim, size: 11)),
+            Text(sub, style: T.mono(T.label, size: 11)),
           ],
         ),
       );
@@ -418,7 +418,7 @@ class _HomeViewState extends State<HomeView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: T.mono(T.green, size: 13, bold: true)),
-              Text(sub, style: T.mono(T.dim, size: 11)),
+              Text(sub, style: T.mono(T.label, size: 11)),
             ],
           ),
         ),

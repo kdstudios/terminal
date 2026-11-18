@@ -65,7 +65,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       _PlayButton(onTap: widget.starting ? null : widget.onPlay, loading: widget.starting),
                       const SizedBox(height: 8),
-                      Text('v$kVersion', style: T.mono(T.dim, size: 12)),
+                      Text('v$kVersion', style: T.mono(T.label, size: 12)),
                     ]),
                   ),
                 ],
@@ -99,7 +99,7 @@ class _Logo extends StatelessWidget {
       const SizedBox(height: 6),
       Container(width: big * 5.2, height: 2, color: T.dim),
       const SizedBox(height: 6),
-      Text('[ SURVIVAL TERMINAL // EXPEDITION LOG ]', style: T.mono(T.dim, size: 11)),
+      Text('[ SURVIVAL TERMINAL // EXPEDITION LOG ]', style: T.mono(T.label, size: 11)),
     ]);
   }
 }

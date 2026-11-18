@@ -119,7 +119,7 @@ class _SettingsDialog extends StatelessWidget {
 
   Widget _section(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
-        child: Text(t, style: T.mono(T.dim, size: 12)),
+        child: Text(t, style: T.mono(T.label, size: 12)),
       );
 
   Widget _choice(String label, String value, VoidCallback onTap) => Padding(
@@ -136,7 +136,7 @@ class _SettingsDialog extends StatelessWidget {
   Widget _slider(String label, double v, ValueChanged<double> onChanged) => Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(children: [
-          SizedBox(width: 120, child: Text(label, style: T.mono(T.dim, size: 12))),
+          SizedBox(width: 120, child: Text(label, style: T.mono(T.label, size: 12))),
           Expanded(
             child: Slider(
               value: v,

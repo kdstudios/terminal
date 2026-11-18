@@ -79,7 +79,7 @@ class EncounterLog extends StatelessWidget {
     final opts = events.optionsFor(ev);
     Widget btn(int i) => _Btn(
           opts[i].label,
-          opts[i].enabled ? T.green : T.dim,
+          opts[i].enabled ? T.green : T.label,
           opts[i].enabled ? () => events.choose(i) : null,
         );
     Widget body;
