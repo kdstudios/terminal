@@ -310,6 +310,8 @@ class StoryRun {
 /// All Story Expedition state: the active one, every run (so finished stories
 /// keep their journal), how each finished, and facts carried between stories.
 class StoryBook {
+  StoryBook();
+
   String? activeId;
   final Map<String, StoryRun> runs = {};
   final Map<String, String> completed = {}; // story id -> ending id
