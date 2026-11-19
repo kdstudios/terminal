@@ -165,5 +165,6 @@ class LockpickingSystem {
         summary: '> LOCKPICK: $result',
         kind: result == 'FAILED' ? LogKind.warning : LogKind.system);
     state.refresh();
+    state.onEncounterEnd?.call('lock', result.toLowerCase());
   }
 }

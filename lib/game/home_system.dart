@@ -4,6 +4,7 @@ import 'game_state.dart';
 import 'items.dart';
 import 'quests.dart';
 import 'flavor.dart';
+import 'story_system.dart';
 import 'world.dart';
 
 /// Everything you can do at the safehouse: rest, shop, equip, upgrade, depart.
@@ -15,8 +16,9 @@ class HomeSystem {
   static const workshopCosts = [110, 240, 420]; // 3 levels
 
   final GameState state;
+  final StorySystem story;
   final Random _rng = Random();
-  HomeSystem(this.state);
+  HomeSystem(this.state, this.story);
 
   bool get atHome => state.mode == GameMode.home;
 
@@ -191,12 +193,32 @@ class HomeSystem {
     state.spendStat(key);
   }
 
-  /// Head out on a fresh expedition from 0 km.
+  /// Head out on an expedition. Without a Story Expedition this starts from
+  /// 0 km as always; with one, [GameState.beginExpedition] resumes it at its
+  /// saved distance and the story supplies the opening lines.
   void depart() {
     if (!atHome) return;
     state.beginExpedition();
+    final lines = story.departLines();
+    if (lines.isNotEmpty) {
+      for (var i = 0; i < lines.length; i++) {
+        final l = lines[i];
+        state.addLog(l.text, l.kind, notify: i == lines.length - 1, pauseMs: l.pauseMs);
+      }
+      return;
+    }
     final starts = [...startThoughts, ...extraStartThoughts];
     state.addLog(starts[_rng.nextInt(starts.length)], LogKind.thought);
+  }
+
+  void acceptStory(String id) {
+    if (!atHome) return;
+    story.accept(id);
+  }
+
+  void abandonStory() {
+    if (!atHome) return;
+    story.abandon();
   }
 
   /// Abandon the expedition and come home with what you have.

@@ -1,17 +1,29 @@
+/// One button on a choice encounter.
+class EventOption {
+  final String label;
+  final bool enabled;
+  const EventOption(this.label, [this.enabled = true]);
+}
+
 /// A choice-based encounter (trader, survivor, building...). Stateless apart
 /// from an id and its outcome, so options and text are derived from the id.
+/// Story Expedition checkpoints use ids like `story:<story>:<checkpoint>` and
+/// also remember which [scene] they are on.
 class EventSession {
   final String id;
   bool finished = false;
   String result = '';
+  String scene = '';
   EventSession(this.id);
 
-  Map<String, dynamic> toJson() => {'id': id, 'finished': finished, 'result': result};
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'finished': finished, 'result': result, 'scene': scene};
 
   factory EventSession.fromJson(Map<String, dynamic> j) {
     final e = EventSession(j['id'] as String);
     e.finished = j['finished'] as bool;
     e.result = j['result'] as String;
+    e.scene = (j['scene'] as String?) ?? ''; // older saves have no scene
     return e;
   }
 }

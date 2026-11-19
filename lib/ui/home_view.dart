@@ -7,6 +7,10 @@ import '../game/crafting.dart';
 import '../game/items.dart';
 import '../game/quests.dart';
 import '../game/fx.dart';
+import '../game/story_content.dart';
+import '../game/story_model.dart';
+import '../game/story_system.dart';
+import 'story_view.dart';
 import 'sprites.dart';
 import 'theme.dart';
 
@@ -30,6 +34,7 @@ class _HomeViewState extends State<HomeView> {
     'upgrades': 'SAFEHOUSE UPGRADES',
     'character': 'CHARACTER',
     'quests': 'QUEST BOARD',
+    'story': 'STORY EXPEDITIONS',
     'workshop': 'WORKSHOP',
     'craft': 'CRAFTING',
     'repair': 'REPAIR',
@@ -60,6 +65,8 @@ class _HomeViewState extends State<HomeView> {
     switch (_tab) {
       case 'character':
         return _characterRows(s);
+      case 'story':
+        return [StoryView(state: s, system: sys, onBack: () => _go('main'))];
       case 'quests':
         return _questRows(s);
       case 'workshop':
@@ -120,11 +127,20 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
           _menuBtn('[DEPART ON EXPEDITION]', T.amber, sys.depart),
+          if (_storyRun(s) != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(_storyResume(s), style: T.mono(T.amber, size: 11)),
+            ),
           _menuBtn('[REST]  RESTORE HP', T.green, sys.rest),
           _menuBtn('[CHARACTER]${s.statPoints > 0 ? '  (+${s.statPoints})' : ''}',
               s.statPoints > 0 ? T.loot : T.green, () => _go('character')),
           _menuBtn('[QUESTS]${s.quests.any((q) => q.ready) ? '  (!)' : ''}',
               s.quests.any((q) => q.ready) ? T.loot : T.green, () => _go('quests')),
+          _menuBtn(
+              '[STORY EXPEDITIONS]${_storyMarker(s)}',
+              _storyRun(s) != null ? T.amber : (_storyNew(s) ? T.loot : T.green),
+              () => _go('story')),
           _menuBtn('[SUPPLIES]', T.green, () => _go('supplies')),
           _menuBtn('[WEAPONS]', T.green, () => _go('weapons')),
           _menuBtn('[ARMOR]', T.green, () => _go('armor')),
@@ -133,6 +149,24 @@ class _HomeViewState extends State<HomeView> {
         ];
     }
   }
+
+  StoryRun? _storyRun(GameState s) => s.story.activeRun;
+
+  /// "RESUMING: THE MISSING CARAVAN  4.2 / 7.5 KM  2/5 CHECKPOINTS"
+  String _storyResume(GameState s) {
+    final r = s.story.activeRun;
+    final d = r == null ? null : storyDefOrNull(r.id);
+    if (r == null || d == null) return '';
+    final verb = r.km > 0 ? 'RESUMES' : 'BEGINS';
+    return 'THIS DEPARTURE $verb: ${d.title}  ${r.km.toStringAsFixed(1)} / ${d.destinationKm} KM  ${r.done.length}/${d.checkpoints.length}';
+  }
+
+  bool _storyNew(GameState s) =>
+      s.story.activeId == null &&
+      storyCatalog.any((d) => widget.system.story.statusOf(d) == StoryStatus.available);
+
+  String _storyMarker(GameState s) =>
+      s.story.activeRun != null ? '  (ACTIVE)' : (_storyNew(s) ? '  (!)' : '');
 
   String _durBar(int d) {
     final f = min(10, max(0, (d / 10).ceil()));

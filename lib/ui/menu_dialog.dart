@@ -4,6 +4,7 @@ import '../game/game_state.dart';
 import '../game/home_system.dart';
 import '../game/quests.dart';
 import '../game/save_system.dart';
+import '../game/story_content.dart';
 import 'settings_dialog.dart';
 import 'theme.dart';
 
@@ -39,6 +40,13 @@ class _MenuDialog extends StatelessWidget {
     return '${d.title}  $status';
   }
 
+  String _story() {
+    final r = state.story.activeRun;
+    final d = r == null ? null : storyDefOrNull(r.id);
+    if (r == null || d == null) return '';
+    return '${d.title}  ${r.km.toStringAsFixed(1)}/${d.destinationKm} KM  ${r.done.length}/${d.checkpoints.length} CHECKPOINTS';
+  }
+
   String _time(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
@@ -69,6 +77,14 @@ class _MenuDialog extends StatelessWidget {
                 Text('ACTIVE QUESTS', style: T.mono(T.green, size: 12, bold: true)),
                 for (final q in state.quests)
                   Text(_quest(q), style: T.mono(q.ready ? T.loot : T.label, size: 11)),
+              ],
+              if (state.story.activeRun != null) ...[
+                const SizedBox(height: 10),
+                Text('STORY EXPEDITION', style: T.mono(T.green, size: 12, bold: true)),
+                Text(_story(), style: T.mono(T.amber, size: 11)),
+                if (state.mode == GameMode.exploring)
+                  Text('RETURNING HOME PAUSES IT. PROGRESS IS KEPT.',
+                      style: T.mono(T.label, size: 10)),
               ],
               const SizedBox(height: 14),
               _MenuBtn('[SAVE NOW]', T.green, () async {

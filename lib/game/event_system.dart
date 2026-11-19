@@ -8,12 +8,10 @@ import 'game_state.dart';
 import 'hacking_system.dart';
 import 'items.dart';
 import 'lockpicking_system.dart';
+import 'story_content.dart';
+import 'story_system.dart';
 
-class EventOption {
-  final String label;
-  final bool enabled;
-  const EventOption(this.label, [this.enabled = true]);
-}
+export 'event_session.dart' show EventOption;
 
 /// Choice-based encounters. Their text is typed on the main screen (the
 /// encounter console). Some end on their own; others hand you over to the
@@ -24,8 +22,10 @@ class EventSystem {
   final LockpickingSystem lockpicking;
   final CombatSystem combat;
   final Random _rng;
+  final StorySystem? story; // runs Story Expedition checkpoint scenes
 
-  EventSystem(this.state, this.hacking, this.lockpicking, this.combat, {Random? rng})
+  EventSystem(this.state, this.hacking, this.lockpicking, this.combat,
+      {Random? rng, this.story})
       : _rng = rng ?? Random();
 
   static const _baseWeights = {
@@ -62,6 +62,7 @@ class EventSystem {
   }
 
   List<EventOption> optionsFor(EventSession s) {
+    if (isStorySession(s.id)) return story?.optionsFor(s) ?? const [];
     final def = dataEventById(s.id);
     if (def != null) {
       return [
@@ -103,6 +104,10 @@ class EventSystem {
   void choose(int i) {
     final s = state.event;
     if (s == null || s.finished) return;
+    if (isStorySession(s.id)) {
+      story?.choose(i);
+      return;
+    }
     final opts = optionsFor(s);
     if (i < 0 || i >= opts.length || !opts[i].enabled) return;
     final def = dataEventById(s.id);
@@ -139,6 +144,10 @@ class EventSystem {
   void leave() {
     final s = state.event;
     if (s == null || !s.finished) return;
+    if (isStorySession(s.id)) {
+      story?.leave();
+      return;
+    }
     final title = dataEvents.where((e) => e.id == s.id).map((e) => e.title).firstOrNull ?? 'ENCOUNTER';
     state.event = null;
     state.mode = GameMode.exploring;

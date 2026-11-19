@@ -143,5 +143,6 @@ class HackingSystem {
         summary: '> TERMINAL ACCESS: $result',
         kind: result == 'FAILED' ? LogKind.warning : LogKind.system);
     state.refresh();
+    state.onEncounterEnd?.call('hack', result.toLowerCase());
   }
 }

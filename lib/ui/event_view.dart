@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../game/event_data.dart';
 import '../game/event_session.dart';
 import '../game/game_state.dart';
+import '../game/story_content.dart';
 import 'atlas.dart';
 import 'crt.dart';
 import 'sprites.dart';
@@ -23,7 +24,9 @@ class EventView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(eventTitleOf(s.id), style: T.mono(T.amber, size: 15, bold: true)),
-          Expanded(child: CustomPaint(painter: _ScenePainter(s.id))),
+          Expanded(
+              child: CustomPaint(
+                  painter: _ScenePainter(isStorySession(s.id) ? storyArtOf(s.id) : s.id))),
           Text(
             s.finished ? 'ENCOUNTER RESOLVED' : 'AWAITING YOUR DECISION',
             textAlign: TextAlign.center,

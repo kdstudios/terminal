@@ -8,6 +8,7 @@ import 'game_state.dart';
 import 'hacking_system.dart';
 import 'lockpicking_system.dart';
 import 'quests.dart';
+import 'story_system.dart';
 import 'typewriter.dart';
 import 'world.dart';
 
@@ -20,6 +21,7 @@ class ExplorationSystem {
   final CombatSystem combat;
   final EventSystem events;
   final TypewriterController typer;
+  final StorySystem? story; // Story Expedition checkpoints and flavour
   final Random _rng;
   Timer? _timer;
   int _ticks = 0;
@@ -28,7 +30,7 @@ class ExplorationSystem {
   final List<String> _recent = []; // avoids repeating flavour lines
 
   ExplorationSystem(this.state, this.hacking, this.lockpicking, this.combat, this.events, this.typer,
-      {Random? rng})
+      {Random? rng, this.story})
       : _rng = rng ?? Random();
 
   void start() {
@@ -52,6 +54,13 @@ class ExplorationSystem {
     if (km != _lastKm) {
       _lastKm = km;
       state.questEvent(QuestKind.distance, km, absolute: true);
+    }
+    // A Story Expedition checkpoint stops the walk right where it is: no more
+    // distance, no random events, until the player has dealt with it.
+    final st = story;
+    if (st != null && st.poll(settled: typer.settled)) {
+      _eventDue = false;
+      return;
     }
     state.advance(0.01);
     _checkRegion();
@@ -245,6 +254,17 @@ class ExplorationSystem {
         }
       }
       return pick(pool);
+    }
+
+    // While a Story Expedition is active, part of the walk is its own flavour:
+    // lines that know which checkpoints and decisions came before.
+    final st = story;
+    if (st != null && st.active && _rng.nextDouble() < 0.4) {
+      final amb = st.ambient(_rng, _recent);
+      if (amb != null) {
+        state.addLog(amb.text, amb.kind, pauseMs: amb.pauseMs);
+        return;
+      }
     }
 
     final String line;

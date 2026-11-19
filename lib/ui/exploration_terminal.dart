@@ -13,6 +13,7 @@ import 'hacking_view.dart';
 import 'lockpick_view.dart';
 import 'terminal_frame.dart';
 import '../game/fx.dart';
+import '../game/story_content.dart';
 import '../game/world.dart';
 import '../game/typewriter.dart';
 import 'atlas.dart';
@@ -56,6 +57,14 @@ class _ExplorationTerminalState extends State<ExplorationTerminal>
     super.dispose();
   }
 
+  /// " [STORY 4.2/7.5]" while a Story Expedition is being walked.
+  String _storyTag() {
+    final r = widget.state.story.activeRun;
+    final d = r == null ? null : storyDefOrNull(r.id);
+    if (r == null || d == null) return '';
+    return ' [STORY ${r.km.toStringAsFixed(1)}/${d.destinationKm}]';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -81,7 +90,7 @@ class _ExplorationTerminalState extends State<ExplorationTerminal>
                           ? 'SAFEHOUSE'
                           : inEvent
                               ? 'ENCOUNTER'
-                              : 'EXPLORATION // ${widget.state.region}${widget.state.walkingPaused ? ' (STOPPED)' : ''}',
+                              : 'EXPLORATION // ${widget.state.region}${_storyTag()}${widget.state.walkingPaused ? ' (STOPPED)' : ''}',
           child: inHack
               ? HackingView(
                   state: widget.state,

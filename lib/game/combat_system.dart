@@ -149,6 +149,7 @@ class CombatSystem {
     if (died) {
       state.arriveHome(); // death sends you home
       state.endEncounter();
+      state.onEncounterEnd?.call('fight', 'died');
     } else {
       final fled = s.outcome == CombatOutcome.fled;
       state.mode = GameMode.exploring;
@@ -156,6 +157,7 @@ class CombatSystem {
           summary: fled ? '> COMBAT: ESCAPED' : '> COMBAT: VICTORY',
           kind: fled ? LogKind.warning : LogKind.system);
       state.refresh();
+      state.onEncounterEnd?.call('fight', fled ? 'fled' : 'won');
     }
   }
 

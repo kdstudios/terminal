@@ -6,6 +6,8 @@ import 'event_session.dart';
 import 'items.dart';
 import 'quests.dart';
 import 'flavor.dart';
+import 'story_content.dart';
+import 'story_model.dart';
 import 'world.dart';
 import 'hacking_session.dart';
 import 'lockpick_session.dart';
@@ -70,6 +72,20 @@ class GameState extends ChangeNotifier {
   List<QuestProgress> quests = [];
   Set<String> questsDone = {};
   EventSession? event;
+
+  /// Story Expeditions: persistent, longer-form objectives (see story_system.dart).
+  /// While one is active, [distanceKm] is still THE distance every system reads;
+  /// the book only remembers it between outings.
+  final StoryBook story = StoryBook();
+
+  /// Told when a minigame or fight ends: kind 'hack' | 'lock' | 'fight', result
+  /// 'success' | 'failed' | 'ignored' | 'won' | 'fled' | 'died'. Story scenes
+  /// that started it use this to carry on.
+  void Function(String kind, String result)? onEncounterEnd;
+
+  /// Asks for an immediate save (after story decisions and checkpoints).
+  VoidCallback? onCommit;
+  void commit() => onCommit?.call();
 
   /// Randomly generated, repeatable jobs on the quest board.
   List<String> contracts = [];
@@ -235,6 +251,8 @@ class GameState extends ChangeNotifier {
 
   /// Return to the safehouse. Ends any encounter and pauses exploration.
   void arriveHome({bool intro = false}) {
+    final wasOut = mode != GameMode.home;
+    if (wasOut) story.pauseAt(distanceKm); // a Story Expedition pauses right here
     mode = GameMode.home;
     walkingPaused = false;
     pending = null;
@@ -250,6 +268,14 @@ class GameState extends ChangeNotifier {
           LogKind.narrative);
     } else {
       addLog('> ARRIVED AT SAFEHOUSE', LogKind.system, notify: false);
+      final sRun = story.activeRun;
+      final sDef = sRun == null ? null : storyDefOrNull(sRun.id);
+      if (wasOut && sRun != null && sDef != null) {
+        addLog(
+            '> STORY EXPEDITION PAUSED: ${sDef.title} (${sRun.km.toStringAsFixed(2)} / ${sDef.destinationKm} KM)',
+            LogKind.system,
+            notify: false);
+      }
       addLog(arrivalHome[Random().nextInt(arrivalHome.length)], LogKind.narrative);
     }
   }
@@ -292,9 +318,11 @@ class GameState extends ChangeNotifier {
     walkingPaused = false;
     pending = null;
     contracts.clear();
+    story.clear();
   }
 
   Map<String, dynamic> toJson() {
+    if (mode != GameMode.home) story.syncKm(distanceKm);
     final start = log.length > 60 ? log.length - 60 : 0;
     return {
       'hp': hp,
@@ -335,6 +363,7 @@ class GameState extends ChangeNotifier {
       ],
       'paused': walkingPaused,
       'contracts': contracts,
+      'story': story.toJson(),
     };
   }
 
@@ -344,7 +373,7 @@ class GameState extends ChangeNotifier {
     final newHp = (j['hp'] as num).toInt();
     final newMaxHp = (j['maxHp'] as num).toInt();
     final newScrap = (j['scrap'] as num).toInt();
-    final newDist = (j['distanceKm'] as num).toDouble();
+    var newDist = (j['distanceKm'] as num).toDouble();
     final newRegion = j['region'] as String;
     var newMode = GameMode.values.byName(j['mode'] as String);
     final newPicks = (j['lockpicks'] as num).toInt();
@@ -425,14 +454,40 @@ class GameState extends ChangeNotifier {
     }
     final newDone = <String>{...?(j['questsDone'] as List?)?.cast<String>()};
     final evj = j['event'];
-    final newEvent =
+    var newEvent =
         evj == null ? null : EventSession.fromJson(Map<String, dynamic>.from(evj as Map));
+
+    // Story Expeditions (older saves have none: that simply means no stories yet).
+    final sj = j['story'];
+    var newStory = StoryBook();
+    try {
+      newStory = StoryBook.fromJson(sj == null ? null : Map<String, dynamic>.from(sj as Map));
+    } catch (_) {
+      // a damaged story section must never cost the player the rest of the save
+    }
+    newStory.prune((id) => storyDefOrNull(id) != null);
+    if (newEvent != null &&
+        isStorySession(newEvent.id) &&
+        !storySessionValid(newEvent.id, newEvent.scene, newStory)) {
+      newEvent = null; // content changed under the save: drop the scene, never get stuck
+    }
 
     // Keep mode and sessions consistent.
     if (newMode == GameMode.hacking && newHack == null) newMode = GameMode.exploring;
     if (newMode == GameMode.lockpicking && newLock == null) newMode = GameMode.exploring;
     if (newMode == GameMode.combat && newCombat == null) newMode = GameMode.exploring;
     if (newMode == GameMode.event && newEvent == null) newMode = GameMode.exploring;
+
+    // One authoritative distance: out in the wasteland the saved live value wins;
+    // at home an active story's remembered distance is the one to show.
+    final sRun = newStory.activeRun;
+    if (sRun != null) {
+      if (newMode == GameMode.home) {
+        newDist = sRun.km;
+      } else {
+        sRun.km = newDist;
+      }
+    }
 
     hp = newHp;
     maxHp = newMaxHp;
@@ -471,6 +526,7 @@ class GameState extends ChangeNotifier {
     dura = newDura;
     questsDone = newDone;
     event = newMode == GameMode.event ? newEvent : null;
+    story.assign(newStory);
     log
       ..clear()
       ..addAll(newLog);
@@ -480,6 +536,21 @@ class GameState extends ChangeNotifier {
   void beginExpedition() {
     mode = GameMode.exploring;
     walkingPaused = false;
+    // An active Story Expedition is RESUMED at its saved distance, never reset.
+    final run = story.activeRun;
+    final def = run == null ? null : storyDefOrNull(run.id);
+    if (run != null && def != null) {
+      distanceKm = run.km;
+      run.announced = false;
+      region = regionAt(distanceKm).name;
+      addLog('> EXPEDITION INITIATED', LogKind.system, notify: false);
+      addLog('> STORY EXPEDITION: ${def.title}', LogKind.system, notify: false);
+      addLog('> LOCATION: $region  (${distanceKm.toStringAsFixed(2)} / ${def.destinationKm} KM)',
+          LogKind.system,
+          notify: false);
+      notifyListeners();
+      return; // the story's own opening lines are added by HomeSystem.depart
+    }
     distanceKm = 0;
     region = 'DUSTY HIGHWAY';
     addLog('> EXPEDITION INITIATED', LogKind.system, notify: false);
@@ -610,6 +681,7 @@ class GameState extends ChangeNotifier {
 
   void advance(double km) {
     distanceKm += km;
+    story.syncKm(distanceKm);
     notifyListeners();
   }
 

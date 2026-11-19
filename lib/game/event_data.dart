@@ -1,5 +1,6 @@
 import 'combat_session.dart';
 import 'event_session.dart';
+import 'story_content.dart';
 
 /// One possible result of choosing an option. Several outcomes can share an
 /// option, picked by weight. hp is positive for healing, negative for damage.
@@ -244,7 +245,9 @@ EventDef? dataEventById(String id) {
   return null;
 }
 
-String eventTitleOf(String id) => eventTitles[id] ?? dataEventById(id)?.title ?? 'ENCOUNTER';
+String eventTitleOf(String id) => isStorySession(id)
+    ? storyEventTitle(id)
+    : eventTitles[id] ?? dataEventById(id)?.title ?? 'ENCOUNTER';
 String eventDescOf(String id) => eventDescriptions[id] ?? dataEventById(id)?.desc ?? '';
 List<String> eventThoughtsOf(String id) =>
     eventThoughts[id] ?? dataEventById(id)?.thoughts ?? const ['Something is happening.'];

@@ -10,6 +10,7 @@ import 'game/hacking_system.dart';
 import 'game/home_system.dart';
 import 'game/lockpicking_system.dart';
 import 'game/save_system.dart';
+import 'game/story_system.dart';
 import 'game/typewriter.dart';
 import 'ui/dual_terminal_screen.dart';
 import 'ui/atlas.dart';
@@ -37,13 +38,16 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
   late final HackingSystem _hacking = HackingSystem(_state);
   late final LockpickingSystem _lockpicking = LockpickingSystem(_state);
   late final CombatSystem _combat = CombatSystem(_state);
-  late final HomeSystem _home = HomeSystem(_state);
-  late final EventSystem _events = EventSystem(_state, _hacking, _lockpicking, _combat);
+  late final StorySystem _story = StorySystem(_state, _hacking, _lockpicking, _combat);
+  late final HomeSystem _home = HomeSystem(_state, _story);
+  late final EventSystem _events =
+      EventSystem(_state, _hacking, _lockpicking, _combat, story: _story);
   late final TypewriterController _typer = TypewriterController(_state);
   late final TypewriterController _consoleTyper =
       TypewriterController(_state, console: true);
   late final ExplorationSystem _exploration =
-      ExplorationSystem(_state, _hacking, _lockpicking, _combat, _events, _typer);
+      ExplorationSystem(_state, _hacking, _lockpicking, _combat, _events, _typer,
+          story: _story);
   late final SaveSystem _save = SaveSystem(_state);
   late final AudioSystem _audio = AudioSystem(Fx.settings, _state);
   bool _assetsReady = false; // art + settings loaded: the title screen can show
@@ -74,6 +78,7 @@ class _WastelandAppState extends State<WastelandApp> with WidgetsBindingObserver
     if (_started) return;
     setState(() => _started = true);
     await _audio.init();
+    _state.onCommit = () => _save.save(); // story decisions and checkpoints save at once
     final loaded = await _save.load();
     _typer.clear(); // creates the typewriters and hooks them into the log
     _consoleTyper.clear();
