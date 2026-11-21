@@ -3,6 +3,34 @@
 VERSIONING RULE: every time anything is changed, bump `kVersion` in `lib/version.dart`
 (and `version:` in pubspec.yaml) and add an entry here. The version is shown on the title screen.
 
+## 0.7.0
+- COMPLETE WASTELAND STORY LIBRARY: 39 new playable stories on top of the existing three (42 total), each in its own editable
+  Dart file under `lib/game/stories/` (`major/`, `medium/`, `encounters/`, `characters/`), all registered in
+  `story_content.dart`. No new dialogue or choice system: everything is ordinary `Scene` / `Choice` / `Checkpoint` data.
+  - 14 new MAJOR expeditions: The Church of the Eternal Battery (5 endings), The Manufactured Man (5 endings), The Great Water
+    Heist, The Radio That Knows Your Name, The People's Republic of Nowhere, The Perfect Neighbourhood, The Great Wasteland
+    Bake-Off, Project: Big Brother, The Travelling Salesman, The Sleeping Giant, The Man in the Moon, Operation: Freezer Burn,
+    The Wasteland Wedding, and the original comedy THE GARYS (7 endings).
+  - 2 MEDIUM stories: The Last Employee (Mr. Checkout, 5 endings) and The Man Who Sold His Shadow.
+  - 13 SHORT encounters: Gary's Problem, The Toll Collector, The Invisible Man, The Chicken King, The World's Worst Doctor,
+    The Time Traveller, The Weapon Inspector, The Haunted Toilet, The Retirement Home, The Lottery, The Last Radio DJ,
+    The Mushroom Man, The Extremely Dangerous Box.
+  - Character encounters: Murray the Magnificent, Grandma Grim, Mr. Huggins (The Grand Meridian), The Accountant, Frequency Frank.
+  - Follow-ups that unlock after the original: Brother Positive and Dave, Gary's Other Problem, Mr. Checkout's urgent request,
+    A Very Confused Gary, The Lumen Press Revisited.
+- RECURRING CHARACTERS (`stories/characters/`): Brother Positive (+ Dave), Gary, Mr. Checkout, Murray, Grandma Grim,
+  Mr. Huggins, The Accountant, Frequency Frank, Doctor Bones. Each reads the persistent world state and greets you differently
+  depending on what you did. The Accountant builds a ledger from debts, favours and endings left by other stories.
+- CROSS-STORY CONTINUITY: endings leave `world` facts; flags starting `carry.` are promoted on completion. `known(c, fact)`
+  finds either. Every story still works alone and in any order; only the five follow-ups (and Grandma Grim's visit) unlock after
+  another story.
+- ENGINE: `StoryDef.scale` (`StoryScale.major / medium / short`). Major expeditions keep the five-checkpoint rule; medium need three,
+  short encounters one. The selection screen lists major, then medium, then short, with a scale tag. Small helper file
+  `stories/story_kit.dart` (`skillChoice`, `skillSplit`, `known`) only builds ordinary `Choice` objects.
+- TESTS: structure tests are scale-aware and unlock-aware; new tests cover the library count, independence, follow-up locking,
+  character reactions, the Accountant's ledger, Frequency Frank's reference to The Last Transmission, and the Garys jumpsuit rule.
+- Stories at level 3-4 (Manufactured Man, Perfect Neighbourhood, Freezer Burn, Big Brother, Sleeping Giant) have a minimum level.
+
 ## 0.6.0
 - EXPLORATION SCENERY OVERHAUL. All scenery (skyline, roadside props, ground, clutter) now comes from the new categorised
   sprite folders, packed into one atlas `assets/atlas/scenery.png/json` by `tools/pack_scenery.py` (564 sprites: buildings

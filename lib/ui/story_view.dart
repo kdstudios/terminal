@@ -119,7 +119,10 @@ class _StoryViewState extends State<StoryView> {
 
   List<Widget> _list() {
     final active = <StoryDef>[], open = <StoryDef>[], locked = <StoryDef>[], done = <StoryDef>[];
-    for (final d in storyCatalog) {
+    // Major expeditions first, then medium stories, then short encounters.
+    final ordered = [...storyCatalog]
+      ..sort((a, b) => a.scale.index.compareTo(b.scale.index));
+    for (final d in ordered) {
       switch (_st.statusOf(d)) {
         case StoryStatus.active:
         case StoryStatus.paused:
@@ -175,6 +178,7 @@ class _StoryViewState extends State<StoryView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(d.title, style: T.mono(locked ? T.dim : T.green, size: 13, bold: true)),
           Text(_statusText(d, s), style: T.mono(c, size: 11, bold: true)),
+          Text(storyScaleLabel(d.scale), style: T.mono(T.label, size: 11)),
           Text(
               'DESTINATION ${d.destinationKm} KM   REC. LV ${d.recommendedLevel}   DANGER: ${d.difficulty}',
               style: T.mono(T.label, size: 11)),
@@ -205,6 +209,7 @@ class _StoryViewState extends State<StoryView> {
           })),
       Text(d.title, style: T.mono(T.amber, size: 14, bold: true)),
       Text(_statusText(d, s), style: T.mono(c, size: 12, bold: true)),
+      Text(storyScaleLabel(d.scale), style: T.mono(T.label, size: 11)),
       const SizedBox(height: 4),
       Text('DESTINATION ${d.destinationKm} KM   RECOMMENDED LV ${d.recommendedLevel}   DANGER: ${d.difficulty}',
           style: T.mono(T.label, size: 11)),

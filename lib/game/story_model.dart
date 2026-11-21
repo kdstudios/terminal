@@ -220,8 +220,25 @@ class Unlock {
   }
 }
 
+/// How big a story is. Major expeditions are long multi-checkpoint journeys,
+/// medium stories have a beginning, escalation and conclusion, and short
+/// stories are side encounters of one or two checkpoints.
+enum StoryScale { major, medium, short }
+
+String storyScaleLabel(StoryScale s) {
+  switch (s) {
+    case StoryScale.major:
+      return 'MAJOR EXPEDITION';
+    case StoryScale.medium:
+      return 'MEDIUM STORY';
+    case StoryScale.short:
+      return 'SHORT ENCOUNTER';
+  }
+}
+
 class StoryDef {
   final String id, title, tagline, difficulty;
+  final StoryScale scale;
   final List<String> intro;
   final double destinationKm;
   final int recommendedLevel;
@@ -246,6 +263,7 @@ class StoryDef {
     required this.ambient,
     required this.depart,
     this.unlock = const Unlock(),
+    this.scale = StoryScale.major,
   });
 }
 
@@ -310,6 +328,8 @@ class StoryRun {
 /// All Story Expedition state: the active one, every run (so finished stories
 /// keep their journal), how each finished, and facts carried between stories.
 class StoryBook {
+  StoryBook();
+
   String? activeId;
   final Map<String, StoryRun> runs = {};
   final Map<String, String> completed = {}; // story id -> ending id

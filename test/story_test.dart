@@ -6,6 +6,11 @@ import 'package:wasteland_terminal/game/game_state.dart';
 import 'package:wasteland_terminal/game/hacking_system.dart';
 import 'package:wasteland_terminal/game/lockpicking_system.dart';
 import 'package:wasteland_terminal/game/quests.dart';
+import 'package:wasteland_terminal/game/stories/characters/accountant.dart';
+import 'package:wasteland_terminal/game/stories/characters/brother_positive.dart';
+import 'package:wasteland_terminal/game/stories/characters/frequency_frank.dart';
+import 'package:wasteland_terminal/game/stories/characters/gary.dart';
+import 'package:wasteland_terminal/game/stories/characters/mr_checkout.dart';
 import 'package:wasteland_terminal/game/story_content.dart';
 import 'package:wasteland_terminal/game/story_model.dart';
 import 'package:wasteland_terminal/game/story_system.dart';
@@ -96,11 +101,35 @@ StoryCtx _ctx([Set<String> flags = const {}]) {
   );
 }
 
+StoryCtx _worldCtx(Set<String> world, [Map<String, String> endings = const {}]) {
+  final book = StoryBook()
+    ..world.addAll(world)
+    ..completed.addAll(endings);
+  return StoryCtx(
+    run: StoryRun('t'),
+    book: book,
+    level: 1,
+    km: 0,
+    hp: 100,
+    maxHp: 100,
+    scrap: 0,
+    region: 'DUSTY HIGHWAY',
+    skills: const {},
+    quests: const {},
+  );
+}
+
 void main() {
   group('story content', () {
     for (final d in storyCatalog) {
       test('${d.id}: structure is sound', () {
-        expect(d.checkpoints.length, greaterThanOrEqualTo(5));
+        // major expeditions need five checkpoints, medium stories three, short encounters one
+        final minCheckpoints = switch (d.scale) {
+          StoryScale.major => 5,
+          StoryScale.medium => 3,
+          StoryScale.short => 1,
+        };
+        expect(d.checkpoints.length, greaterThanOrEqualTo(minCheckpoints));
         final ids = d.checkpoints.map((c) => c.id).toSet();
         expect(ids.length, d.checkpoints.length, reason: 'duplicate checkpoint id');
         var last = 0.0;
@@ -190,7 +219,12 @@ void main() {
             }
           }
         }
-        expect(d.ambient.length, greaterThanOrEqualTo(10));
+        final minAmbient = switch (d.scale) {
+          StoryScale.major => 10,
+          StoryScale.medium => 6,
+          StoryScale.short => 3,
+        };
+        expect(d.ambient.length, greaterThanOrEqualTo(minAmbient));
         for (final a in d.ambient) {
           expect(a.text.trim(), isNotEmpty);
         }
@@ -204,6 +238,77 @@ void main() {
         }
       }
       expect(storyCatalog.map((d) => d.id).toSet().length, storyCatalog.length);
+    });
+  });
+
+  group('story library', () {
+    test('the full library is registered, grouped by scale', () {
+      int n(StoryScale k) => storyCatalog.where((d) => d.scale == k).length;
+      expect(n(StoryScale.major), 17);
+      expect(n(StoryScale.medium), 2);
+      expect(n(StoryScale.short), 23);
+    });
+
+    test('only follow-up encounters depend on another story', () {
+      for (final d in storyCatalog) {
+        final needs = d.unlock.allDone.isNotEmpty || d.unlock.anyDone.isNotEmpty;
+        if (needs) {
+          expect(
+              {'church_return', 'shoes_return', 'checkout_return', 'garys_return', 'shadow_return', 'grandma'},
+              contains(d.id),
+              reason: '${d.id} should work in any order');
+        }
+      }
+    });
+
+    test('follow-ups are locked until the original is finished', () {
+      final r = Rig();
+      r.state.level = 6;
+      final d = storyDefOrNull('church_return')!;
+      expect(r.story.statusOf(d), StoryStatus.locked);
+      r.state.story.completed['church'] = 'eternal';
+      expect(r.story.statusOf(d), StoryStatus.available);
+    });
+
+    test('recurring characters react to what the player did', () {
+      String join(List<String> l) => l.join(' ');
+      expect(BrotherPositive.mood(_worldCtx({'battery.repaired'})), 'repaired');
+      expect(BrotherPositive.mood(_worldCtx({'battery.stolen'})), 'stolen');
+      expect(join(BrotherPositive.greeting(_worldCtx({'battery.stolen'}))),
+          isNot(join(BrotherPositive.greeting(_worldCtx({'battery.repaired'})))));
+      expect(BrotherPositive.dave(_worldCtx({'carry.dave.admitted'})).single, contains('we both know'));
+      expect(Gary.mood(_worldCtx({'gary.helped'})), 'helped');
+      expect(Gary.mood(_worldCtx({'gary.lied'})), 'lied');
+      expect(MrCheckout.mood(_worldCtx({'checkout.manager'})), 'manager');
+      expect(join(MrCheckout.greeting(_worldCtx({'checkout.manager'}))), contains('MANAGER'));
+    });
+
+    test('the Accountant remembers debts, favours and endings from other stories', () {
+      final c = _worldCtx({'debt.salesman', 'carry.favour.gary'}, {'church': 'prophet'});
+      final ledger = Accountant.ledger(c).join('\n');
+      expect(ledger, contains('MIRACLE TONIC'));
+      expect(ledger, contains('GARY'));
+      expect(ledger, contains('BATTERY'));
+      expect(Accountant.ledger(_worldCtx({})), hasLength(1));
+    });
+
+    test('Frequency Frank quotes what you found in The Last Transmission', () {
+      final c = _worldCtx({}, {'transmission': 'truth'});
+      expect(FrequencyFrank.greeting(c).join(' '), contains('Dentist'));
+    });
+
+    test('The Garys: the only text on a jumpsuit is gary, never a number or label', () {
+      final d = storyDefOrNull('garys')!;
+      final text = StringBuffer();
+      for (final cp in d.checkpoints) {
+        for (final sc in cp.sceneMap.values) {
+          text.writeln(sc.text(_ctx()).join(' '));
+        }
+      }
+      final all = text.toString();
+      expect(all, contains('gary'));
+      expect(RegExp(r'gary\s*#?\d').hasMatch(all), isFalse);
+      expect(all.toLowerCase(), isNot(contains('vault')));
     });
   });
 
@@ -597,6 +702,13 @@ void main() {
             r.state.scrap = 500;
             r.state.story.completed['caravan'] = 'left'; // unlocks the third story
             if (d.id == 'caravan') r.state.story.completed.clear();
+            // satisfy whatever this story needs (follow-ups unlock after another story)
+            for (final id in [...d.unlock.allDone, ...d.unlock.anyDone.take(1)]) {
+              if (id != d.id) {
+                r.state.story.completed[id] = storyDefOrNull(id)!.endings.keys.first;
+              }
+            }
+            if (d.unlock.world != null) r.state.story.world.add(d.unlock.world!);
             await r.play(d.id, win: win, last: last);
             expect(r.state.story.completed.containsKey(d.id), isTrue);
             expect(r.state.story.activeId, isNull);
